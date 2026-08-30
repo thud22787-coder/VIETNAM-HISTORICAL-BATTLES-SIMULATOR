@@ -83,6 +83,20 @@ export interface CarryForward {
    */
   readonly lossPersistence: number;
   /**
+   * Which factions this applies to. Omit to apply it to everyone.
+   *
+   * Rarely symmetric, and the asymmetry is usually the historically
+   * interesting part. In the Lam Sơn campaign the Ming carry losses forward
+   * (a beaten position commits its relief force under pressure) while Lam Sơn
+   * do not (they were recruiting and reinforcing throughout 1427). Applying
+   * one rule to both sides would get the direction of that campaign backwards.
+   *
+   * This field exists because a test caught exactly that: both battles use the
+   * faction id `lam-son`, so an unscoped rule silently carried Lam Sơn losses
+   * into Chi Lăng while the campaign's own notes said it did not.
+   */
+  readonly appliesTo?: readonly FactionId[];
+  /**
    * Floor on a faction's strength multiplier, so a bad result degrades the next
    * battle without making it unwinnable. A campaign that can become impossible
    * two steps in is a worse simulation, not a more realistic one.
@@ -259,7 +273,10 @@ export function strengthMultiplier(
   const surviving = previous.survivingFraction[faction];
   if (surviving === undefined) return 1;
 
-  const { lossPersistence, minStrengthFraction } = step.carryForward;
+  const { lossPersistence, minStrengthFraction, appliesTo } = step.carryForward;
+
+  // A rule scoped to particular factions leaves everyone else untouched.
+  if (appliesTo !== undefined && !appliesTo.includes(faction)) return 1;
   // Interpolate between "fully recovered" (1) and "as depleted as they ended".
   const carried = 1 - (1 - surviving) * lossPersistence;
   return Math.max(minStrengthFraction, Math.min(1, carried));
@@ -422,6 +439,12 @@ export function validateCampaign(
     }
     if (cf.minStrengthFraction <= 0 || cf.minStrengthFraction > 1) {
       err('INVALID_MIN_STRENGTH', `Step ${i} minStrengthFraction must be in (0,1].`);
+    }
+    if (cf.appliesTo !== undefined && cf.appliesTo.length === 0) {
+      err(
+        'EMPTY_CARRY_FORWARD_SCOPE',
+        `Step ${i} declares appliesTo as an empty list, which silently disables carry-forward. Omit it to apply to everyone.`,
+      );
     }
     if (cf.lossPersistence > 0 && !cf.note) {
       warn(

@@ -148,12 +148,34 @@ tested against a synthetic operational campaign instead.
 
 ## Next
 
-### Phase 14 — A third battle, or an operational campaign ← **start here**
+### Phase 14 — Third battle and an operational campaign ✅
 
-An operational campaign (the engagements of a single Lam Sơn year, say) would exercise
-carry-forward against real history rather than a synthetic fixture. A third battle would add
-content; ADR-008 sets the expectation — mostly data, plus whatever general capability its mechanic
-needs.
+**Tốt Động – Chúc Động (1426)** as the third battle, and **LAM_SON_1426** as the first genuinely
+operational campaign — closing the gap the previous session recorded, where carry-forward was
+tested only against a synthetic fixture.
+
+ADR-008's prediction held: the third battle cost **no engine change at all**. Its mechanic — a
+heavy column bogged in worked paddy while local levies move freely — is Chi Lăng's marsh with
+different numbers in `mechanics.terrainEffects`.
+
+It is also the project's **best-documented disagreement**: both traditions' figures survive and
+both are attributed (Ming strength 54,000 vs 100,000, casualties 20–30,000 vs 50,000). Carried
+through as `DISPUTED` rather than reconciled.
+
+---
+
+## Next
+
+### Phase 15 — Open ← **start here**
+
+No unbuilt phase remains. The honest candidates, in rough order of value:
+
+- **A physical Android device pass.** The last wholly unverified platform claim.
+- **A siege scenario.** `LAM_SON_1426` narrates the siege of Đông Quan between its two battles
+  but cannot play it — sieges are a kind of engagement the simulation does not model.
+- **Closing research debts RD-01..RD-09**, especially RD-08 (the Ming Shi-lu via Geoff Wade),
+  which would let several DISPUTED figures be checked against the record they came from.
+- **AI opponent modelling** — it still does not reason about what the enemy is trying to do.
 
 ---
 

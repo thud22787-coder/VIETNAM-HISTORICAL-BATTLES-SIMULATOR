@@ -48,6 +48,7 @@ function fakeDom(search) {
 for (const [label, search] of [
   ['default (Bach Dang 1288)', ''],
   ['Chi Lang 1427', '?battle=CHI_LANG_1427'],
+  ['Tot Dong 1426', '?battle=TOT_DONG_1426'],
   ['unknown battle falls back', '?battle=NOT_A_BATTLE'],
 ]) {
   test(`the shell boots for ${label}`, async () => {
@@ -67,4 +68,5 @@ test('the battle list offers every battle', async () => {
   const html = dom.made.get('battleList').innerHTML;
   assert.match(html, /BACH_DANG_1288/);
   assert.match(html, /CHI_LANG_1427/);
+  assert.match(html, /TOT_DONG_1426/);
 });

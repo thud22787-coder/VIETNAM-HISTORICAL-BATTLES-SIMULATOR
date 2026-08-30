@@ -11,6 +11,7 @@
 import {
   BACH_DANG_1288,
   CHI_LANG_1427,
+  TOT_DONG_1426,
   createInitialState,
   step,
   evaluateTide,
@@ -48,6 +49,7 @@ import { attachInput, type DragBox, type InputIntent } from './input.ts';
  */
 const BATTLES = [
   { scenario: BACH_DANG_1288, player: 'dai-viet', enemy: 'yuan' },
+  { scenario: TOT_DONG_1426, player: 'lam-son', enemy: 'ming' },
   { scenario: CHI_LANG_1427, player: 'lam-son', enemy: 'ming' },
 ] as const;
 

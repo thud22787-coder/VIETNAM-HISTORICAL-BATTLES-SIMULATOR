@@ -195,6 +195,67 @@ as the source themselves. Every claim below records what class of evidence suppo
   *asymmetry* (a large column against a smaller ambushing force) is treated as
   `SUPPORTED_INTERPRETATION`; the numbers are `SIMULATION_PARAMETER`.
 
+
+---
+
+## S-010 — Battle of Tốt Động – Chúc Động, 1426: outline
+
+- **Class:** `ACADEMIC_SECONDARY` / `PRIMARY_CHRONICLE`
+- **Confidence:** HIGH (that it happened, its date, and its outcome) / MEDIUM (tactical detail)
+- **Claim:** On **7 November 1426**, between the villages of Tốt Động and Chúc Động in Chương Mỹ
+  district (Red River delta, near modern Hanoi), a Lam Sơn force ambushed and routed a Ming army
+  under **Wang Tong (Vương Thông)**. Wang Tong withdrew to Đông Quan, where Lê Lợi then besieged
+  him. Vietnamese commanders named include **Lý Triện, Đinh Lễ, Đỗ Bí, Nguyễn Xí, Trương Chiến**;
+  Ming commanders alongside Wang Tong include Fang Zheng, Ma Qi, Shan Shou, Li An, Chen Qia and
+  Ma Ying.
+- **Why it matters for this project:** it is the battle that *causes* Chi Lăng. Wang Tong besieged
+  at Đông Quan is precisely why the Ming sent Liễu Thăng's relief column the following year. That
+  is a genuine operational link, unlike the thematic one between Bạch Đằng and Chi Lăng.
+- **Sources:** Wikipedia, *Battle of Tốt Động – Chúc Động* and *Lam Sơn uprising*, citing the
+  **Ming Shi-lu** (via **Geoff Wade**'s translation) for Chinese figures. *Neither the Ming Shi-lu
+  nor Wade has been consulted directly* — research debt RD-08.
+
+## S-011 — Tốt Động – Chúc Động: tactical sequence
+
+- **Class:** `SUPPORTED_INTERPRETATION`
+- **Confidence:** MEDIUM
+- **Claim:** The engagement developed in phases. Lam Sơn forces **feigned a retreat past the Tam
+  La bridge**, across ground described as **mud and rice paddies**, where the pursuing Ming force
+  **bogged down and was ambushed**. In a later phase the Ming set spiked bamboo barricades; Lam
+  Sơn war elephants trod on these and stampeded, forcing a temporary withdrawal. Learning that
+  Wang Tong intended to put troops behind them during a river crossing, the Lam Sơn force **lay
+  silent and still** to conceal its position, then fell on the Ming near the **Yên Duyệt river**,
+  driving them into the villages of Tốt Động and Chúc Động. Many Ming drowned attempting to
+  recross the river.
+- **Caveat:** the *feigned retreat → bogged pursuit → concealed ambush* structure is consistent
+  across accounts, but exact positions, timings and the sequence of phases are not recoverable at
+  simulation resolution. The elephants are attested in the accounts but are a detail we do not
+  model.
+
+## S-012 — Tốt Động – Chúc Động: force figures — DISPUTED
+
+- **Class:** `DISPUTED` — **DO NOT PRESENT AS FACT**
+- **Confidence:** LOW
+- **Conflict record:**
+
+| Claim | Figure | Attribution |
+|---|---|---|
+| Lam Sơn strength | 6,000 | Ming Shi-lu, cited via Geoff Wade |
+| Ming strength | 100,000 | Vietnamese sources |
+| Ming strength | 54,000 | Chinese sources (Ming Shi-lu) |
+| Ming killed | 50,000, plus 10,000 captured | Vietnamese sources |
+| Ming killed | 20,000–30,000 | Chinese sources (Ming Shi-lu) |
+| Lam Sơn losses | not recorded | — |
+
+- **Current interpretation:** this is a **better-documented disagreement than either of the other
+  battles**, and worth treating as a teaching case rather than a nuisance. Both sides' figures
+  survive and both are attributed, so the conflict can be shown to the player *as a conflict*
+  instead of being resolved silently (§106). Note the direction of the disagreement is the usual
+  one: the victor's tradition reports a larger enemy and heavier enemy losses.
+  The Ming strength figures differ by roughly a factor of two; the casualty figures by more.
+- **Action:** modelled as `DISPUTED` with both candidates and their attributions carried through,
+  never averaged into a single number. Simulation force sizes remain `SIMULATION_PARAMETER`.
+
 ---
 
 ## Research debts (open)
@@ -216,3 +277,10 @@ These MUST be closed before any scenario claims `VERIFIED_FACT` status for the a
   the casualty figures in S-007 and S-009.
 - **RD-07** Determine whether any archaeological work has been done at Chi Lăng comparable to the
   Bạch Đằng stake excavations. If so it would be the strongest evidence available for the site.
+- **RD-08** Consult the **Ming Shi-lu** directly, via Geoff Wade's translation, for the 1426-1427
+  campaign. It is the source behind every Chinese figure in S-012 and is currently reached only
+  through Wikipedia's citation of it. Doing so would also let S-009 (Chi Lăng casualties) be
+  checked against the same record.
+- **RD-09** Find a topographic or historical-geographic source for the Tốt Động / Chúc Động
+  ground. The mud-and-paddy terrain is the mechanic of the battle and is currently attested only
+  in narrative description.
