@@ -1,0 +1,19 @@
+{
+  "name": "@vhbs/android",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Android shell (Capacitor) for the Vietnam Historical Battles Simulator",
+  "scripts": {
+    "sync": "npm run build -w @vhbs/game-ui && node scripts/copy-www.mjs && cap sync android",
+    "open": "cap open android",
+    "build:apk": "npm run sync && cd android && gradlew.bat assembleDebug",
+    "test": "node --test \"tests/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

@@ -94,6 +94,17 @@ place.
 **Proposed fix:** keep the TS contract as the source of truth, add a JSON loader that validates
 against it. Not urgent until external authoring matters.
 
+### TD-06 — The Android APK build depends on machine-local SDK configuration
+
+`ANDROID_HOME` is commonly unset even where the SDK is installed, and the generated `android/`
+project is not committed (deliberately — it is build output).
+
+**Impact:** `npm run build:apk -w @vhbs/android` will fail on a fresh machine until the
+environment is set up. BUILD.md documents the steps.
+
+**Proposed fix:** none needed unless CI is added, at which point the SDK setup becomes a CI
+concern rather than a documentation one.
+
 ### TD-05 — Visibility and terrain effects are declared in two places
 
 `VISIBILITY.concealment` in the observation layer and `mechanics.terrainEffects` in the scenario
@@ -135,12 +146,20 @@ Until RD-01 and RD-04 close, stake **positions** and absolute depths in the scen
 
 ---
 
-## Platform risks (unverified, not yet failures)
+## Platform status
 
-- **No desktop or Android build has been attempted.** Electron and Capacitor are chosen on
-  paper. The Android SDK is present on the development machine but unconfigured
-  (`ANDROID_HOME` unset).
-- **Performance is unprofiled.** The current battle is 14 units; no measurement exists at scale.
+- **Desktop (Electron): built and verified.** A test launches the real shell, loads the built UI,
+  and asserts the briefing renders, both battles list, the canvas sizes, and the console is clean.
+- **Android (Capacitor): native project generates and Gradle builds.** See BUILD.md for the
+  current APK status.
+- **Cross-platform determinism: verified.** The simulation fingerprint is byte-identical between
+  Node and headless Chromium (the engine Android WebView runs). See
+  [ADR-009](DECISIONS/ADR-009-platform-shells.md).
+- **Not verified: a physical Android handset.** The engine is the same Chromium, but
+  device-specific behaviour, performance and touch handling are untested on real hardware.
+- **Not done: touch input design** (§77). The UI is mouse-oriented. A shrunken desktop layout is
+  explicitly not acceptable, so this is real work rather than a config change.
+- **Performance is unprofiled.** The battles are 14 units each; no measurement exists at scale.
 - **The §72 extensibility claim is now evidence-backed**, not merely intended — see
   [ADR-008](DECISIONS/ADR-008-extensibility-verdict.md). Two battles exist with entirely
   different decisive mechanics, no engine file names either, and a test enforces that. The

@@ -93,16 +93,32 @@ see TD-05 in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ---
 
+### Phase 11 — Desktop and Android builds ✅
+
+Electron desktop shell and Capacitor Android project, both deliberately thin — see
+[ADR-009](DECISIONS/ADR-009-platform-shells.md). Cross-platform determinism is now **verified by
+an automated test** rather than assumed: the simulation fingerprint is byte-identical between Node
+and headless Chromium, which is the engine Android WebView runs.
+
+Building it caught a real packaging bug that every existing test passed through: Vite default
+absolute asset paths break `file://` loading, so the desktop app rendered an empty shell.
+
+Still outstanding: **touch input design** (§77) — the UI is mouse-oriented and a shrunken desktop
+layout is explicitly not acceptable. And verification on a physical handset, as opposed to the
+same Chromium engine on desktop.
+
+---
+
 ## Next
 
-### Phase 11 — Desktop and Android builds
+### Phase 12 — Touch input and mobile UX ← **start here**
 
-Electron and Capacitor. Verify cross-platform determinism on a real device — the RNG was written
-in uint32 arithmetic specifically to make this hold, but it has never been checked.
+§77: mobile is not a smaller desktop. Tap to select, tap destination to order, drag selection,
+contextual command menu, pinch zoom and pan, and a pause control that works under a thumb.
 
-Touch input needs its own design; a shrunken desktop UI is not acceptable (§77).
+The simulation needs no changes for this — it already takes commands from any source.
 
-### Phase 12 — Campaign system
+### Phase 13 — Campaign system
 
 Battles linked, with results carrying forward. Historical and player-altered campaign lines kept
 distinct (§37).

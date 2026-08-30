@@ -21,11 +21,20 @@ const walk = (dir: string): string[] =>
     return statSync(full).isDirectory() ? walk(full) : [full];
   });
 
-/** Engine and framework files — everything except the battle data itself. */
+/**
+ * Engine and framework files — everything except battle data and the two places
+ * that legitimately enumerate battles.
+ *
+ * `src/index.ts` is the package export registry, and `src/testing/` holds the
+ * determinism fingerprint, which must run *specific* battles to be a
+ * fingerprint at all. Neither decides anything about how a battle is
+ * simulated, which is what this guard is protecting.
+ */
 const engineFiles = walk(srcDir).filter(
   (f) =>
     f.endsWith('.ts') &&
     !f.includes(join('scenario', 'battles')) &&
+    !f.includes(join('src', 'testing')) &&
     !f.endsWith(join('src', 'index.ts')),
 );
 

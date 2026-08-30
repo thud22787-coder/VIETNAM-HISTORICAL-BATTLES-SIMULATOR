@@ -40,5 +40,8 @@ export * from './state/observed.ts';
 /* AI */
 export * from './ai/commander.ts';
 
+/* Testing utilities */
+export * from './testing/fingerprint.ts';
+
 /* Analysis */
 export * from './analysis/analyse.ts';

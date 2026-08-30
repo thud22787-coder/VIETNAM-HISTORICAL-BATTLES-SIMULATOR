@@ -11,3 +11,9 @@ coverage/
 *.aab
 .gradle/
 local.properties
+
+# Platform shells
+packages/desktop/dist/
+packages/android/www/
+packages/android/android/
+packages/game-ui/.determinism/

@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/second-battle`)
+**Last verified commit:** see `git log` (branch `feature/productisation`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,13 +18,12 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-10 complete (foundation through a second battle and terrain effects). Next is
-desktop/Android productisation, which is the last wholly unverified area.
-See [ROADMAP.md](ROADMAP.md).
+Phases 0-11 complete (foundation through desktop and Android shells). Next is touch input and
+mobile UX. See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (224 tests across both packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (231 tests across three packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -72,6 +71,18 @@ Verified by `npm test` (224 tests across both packages, all passing) and `npm ru
   per-unit-kind overrides (closing GAP-02).
 - **Chi Lăng 1427** — the second battle: a land ambush in a mountain defile, structurally unlike
   the first. Its purpose was to test §72; the verdict is in ADR-008.
+- **Cross-platform determinism, verified.** `src/testing/fingerprint.ts` computes a pure
+  fingerprint (32 RNG draws at 17 decimal places, forked stream states, both battles' complete end
+  state). Two tests compare it against one golden file — one under Node, one in headless Chromium
+  after a real Vite build. Byte-identical. This is what ADR-001 claimed and no session had checked.
+- **Desktop shell (Electron)** — thin by design: opens a window on the built UI, no game logic.
+  `contextIsolation` on, `nodeIntegration` off, `sandbox` on. A test launches the real shell and
+  asserts the game actually renders.
+- **Android shell (Capacitor)** — native project generates; packages the *same* `game-ui/dist`
+  bytes the desktop shell loads, so all targets ship identical application code.
+- **Content Security Policy** — the app declares one matching what it actually does
+  (`default-src 'none'`, no `connect-src` at all), so an accidental network dependency would fail
+  loudly rather than work silently.
 - **Playable browser UI** — canvas battlefield with tide-aware terrain shading, unit selection
   and move orders, play/pause/speed, live tide and "channel closes in…" countdown, battle log,
   and a post-battle screen showing findings with their OBSERVED / INFERRED / SPECULATIVE labels
@@ -85,8 +96,11 @@ Nothing is half-finished. The tree is clean and all tests pass.
 
 - **Messenger delay and misinformation** (§18). The architecture allows them — sighting memory is
   per-commander and timestamped — but neither is modelled.
-- **Desktop and Android builds.** Toolchain chosen (Electron + Capacitor), nothing built.
-  Android SDK is present on the dev machine; no build has been attempted.
+- **Touch input and mobile UX** (§77). The UI is mouse-oriented. A shrunken desktop layout is
+  explicitly not acceptable, so this is real design work rather than a config change.
+- **Verification on a physical Android handset.** The engine is the same Chromium that the
+  determinism test exercises, but device behaviour, performance and touch are untested on real
+  hardware.
 - **Campaign system** (§36-37).
 
 ## KNOWN BUGS
@@ -115,11 +129,15 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   212 tests — all passing
-game-ui     12 tests — all passing
-tsc --noEmit — clean in both packages
+sim-core   216 tests — all passing
+game-ui     13 tests — all passing   (includes the browser determinism check)
+desktop      2 tests — all passing   (launches the real Electron shell)
+tsc --noEmit — clean
 vite build  — clean (56 KB bundle)
 ```
+
+No tests are skipped: Chromium and Electron are both present on this machine, so the platform
+tests actually run rather than reporting a skip.
 
 Covered: epistemic model, RNG determinism, tide physics, invariants, baseline immutability,
 scenario validation, engine determinism and purity, commands, combat factors, victory
@@ -138,8 +156,14 @@ Not covered: AI strategy, actual pixel rendering, and performance at scale.
 ## CURRENT BUILD STATUS
 
 `npm test`, `npm run typecheck` and the Vite production build all pass on Windows with
-Node 24.14.1. The built page was served and its assets fetched over HTTP.
-**No desktop or Android build has been attempted.** Do not claim these work.
+Node 24.14.1.
+
+**Desktop:** the Electron shell launches and renders the game; asserted by a test, not by
+inspection. **Android:** the Capacitor native project generates and Gradle runs — see
+[BUILD.md](BUILD.md) for the current APK status. **Determinism:** byte-identical between Node and
+headless Chromium.
+
+Not verified: a physical Android device.
 
 ## LAST VERIFIED COMMIT
 
@@ -149,9 +173,8 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **Desktop and Android builds** (Phase 11). This is now the last wholly unverified area: the
-   toolchain is chosen on paper and no build has ever been attempted. Cross-platform determinism
-   is designed for (uint32 arithmetic) but never checked on a device.
+1. **Touch input and mobile UX** (Phase 12). §77 is explicit that mobile is not a smaller
+   desktop. The simulation needs no changes — it already takes commands from any source.
 2. **AI tide awareness** — the Yuan commander does not understand that waiting makes its position
    worse, which a competent sailor would have known. See AI_COMMANDER_CONTRACT §6.
 3. **A third battle**, if more content is wanted. ADR-008 sets the honest expectation: mostly
@@ -178,3 +201,9 @@ In dependency order:
   escape threshold was briefly set to a figure no amount of good play could reach.
 - **No engine file may name a battle or branch on scenario identity.** A test enforces this and
   was verified against a planted violation. It is what the whole §72 argument rests on.
+- **The built UI must use relative asset paths.** Absolute `/assets/...` breaks `file://` loading
+  in both platform shells, and the app renders as an empty page. Two tests guard it.
+- **The determinism golden file must be regenerated alongside any `SIMULATION_VERSION` bump**, in
+  the same commit, so the diff shows which numbers moved.
+- **Platform shells stay thin.** No game logic in Electron or Capacitor; if a shell seems to need
+  it, it belongs in `sim-core`.
