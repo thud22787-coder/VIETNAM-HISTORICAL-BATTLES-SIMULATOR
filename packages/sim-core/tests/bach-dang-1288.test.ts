@@ -272,6 +272,59 @@ describe('the tide is the decisive variable (ADR-007)', () => {
   });
 });
 
+describe('objectives must be attainable and honest', () => {
+  test('the Yuan objective matches its own description', () => {
+    // It previously read "break out to sea" while its condition rewarded
+    // grinding down the defenders. An AI reading the scenario honestly charged
+    // the defenders instead of running, which is how the contradiction surfaced.
+    const breakOut = BACH_DANG_1288.objectives.find((o) => o.id === 'yuan-break-out')!;
+    assert.match(breakOut.description, /break out|sea/i);
+    assert.equal(
+      breakOut.condition.kind,
+      'ESCAPE',
+      'an objective describing escape must be expressed as an escape condition',
+    );
+  });
+
+  test('the escape threshold requires more than just the light escorts', () => {
+    // Only the three shallow-draft junks (38% of the fleet) can reliably clear
+    // the obstructions. A threshold at or below that would hand the Yuan a
+    // victory for saving nothing but escorts while the battle fleet lay wrecked
+    // -- the outcome history records as a catastrophic defeat.
+    const breakOut = BACH_DANG_1288.objectives.find((o) => o.id === 'yuan-break-out')!;
+    assert.equal(breakOut.condition.kind, 'ESCAPE');
+    if (breakOut.condition.kind !== 'ESCAPE') throw new Error('unreachable');
+
+    const fleet = BACH_DANG_1288.initialUnits.filter((u) => u.faction === YUAN);
+    const shallow = fleet.filter((u) => (u.draftM ?? 0) < 1.0).length;
+    assert.ok(
+      breakOut.condition.fractionEscaped > shallow / fleet.length,
+      `escape threshold ${breakOut.condition.fractionEscaped} is met by the light escorts alone`,
+    );
+  });
+
+  test('the escape threshold is not literally unattainable either', () => {
+    // The mirror failure: a threshold no amount of good play can reach means
+    // the Yuan cannot win by their own stated objective.
+    const breakOut = BACH_DANG_1288.objectives.find((o) => o.id === 'yuan-break-out')!;
+    if (breakOut.condition.kind !== 'ESCAPE') throw new Error('unreachable');
+    assert.ok(breakOut.condition.fractionEscaped <= 1);
+
+    // Sailing hard from tick zero must get at least someone out.
+    let s = createInitialState(BACH_DANG_1288, 'attainable');
+    for (let i = 0; i < 200 && s.outcome.kind === 'ONGOING'; i++) {
+      const commands: Command[] = s.units
+        .filter((u) => u.faction === YUAN && canAct(u))
+        .map((u) => ({ kind: 'MOVE' as const, unitId: u.id, to: { x: 100, y: u.position.y } }));
+      s = step(s, commands, BACH_DANG_1288);
+    }
+    const out = s.units.filter(
+      (u) => u.faction === YUAN && canAct(u) && u.position.x <= 600,
+    ).length;
+    assert.ok(out > 0, 'optimal play must get at least some vessels to open water');
+  });
+});
+
 describe('every battle reaches a conclusion (INV-15)', () => {
   test('the battle always resolves rather than hanging', () => {
     // A simulation that simply stops tells the player nothing.

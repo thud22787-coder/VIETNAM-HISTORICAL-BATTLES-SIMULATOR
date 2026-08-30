@@ -7,11 +7,93 @@ Most recent session first.
 
 ---
 
+## SESSION 3 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-8 complete. AI commander built; a second battle is next.
+
+### WHAT WAS DONE
+
+Built the AI commander (`src/ai/commander.ts`) — three layers, reading only `ObservedState`.
+See [AI_COMMANDER_CONTRACT.md](AI_COMMANDER_CONTRACT.md).
+
+The interesting part is what fog of war made possible. The Yuan commander is not told where the
+stake field is, so it sails into the obstructions for the same reason the historical fleet did.
+It then *infers* the hazard from watching its own ships stop dead in open water, records that
+inference with the observation behind it, and steers around the area afterwards. It starts
+knowing nothing and only learns by losing vessels.
+
+### TWO SCENARIO BUGS THE AI EXPOSED
+
+Both were found by running the AI and reading its decision log — not by tests, which stayed green.
+
+1. **The Yuan objective contradicted its own description.** It read "Break out to sea with the
+   fleet intact" but its condition was `ATTRITION` against Đại Việt. The AI read the mechanics
+   honestly and charged the defenders instead of running, winning by attrition in 2.3h without
+   ever approaching the stakes. Added an `ESCAPE` victory condition so the mechanics match the
+   words.
+
+2. **The escape threshold was unattainable.** Only the three shallow-draft junks (38% of the
+   fleet) can reliably clear the obstructions once the tide falls, so a 50% threshold meant the
+   Yuan could not win by their own stated objective no matter how well they played. But setting it
+   *below* 38% was worse — it handed them a victory for saving nothing but the light escorts while
+   the whole battle fleet lay wrecked, which is the outcome history records as a catastrophe.
+   Kept at 0.5, which now means "at least some heavy squadrons got through", with the reasoning
+   written into the scenario.
+
+A third bug was in the AI itself: units stopped 155m short of the escape line and held there,
+because `arrivalToleranceM` (250m) was larger than the margin they needed. A threshold objective
+has to be satisfied exactly, not approximately.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **194 tests passing** (186 sim-core, 8 game-ui), 0 failed
+- `npm run typecheck` → clean in both packages; `vite build` clean (46 KB)
+- The leak guard runs for **both factions at every tick** of AI-vs-AI battles
+- The UI guard was checked adversarially: a ground-truth read was planted inside the AI path,
+  the guard failed as intended, and it was removed
+- Outcome variety across six seeds: **3 Đại Việt wins, 3 Yuan wins**, with 1-3 hazards inferred
+  per run. Both sides make real decisions and neither dominates.
+
+### BRANCH
+
+`feature/ai-commander`, branched from `main`.
+
+### KNOWN RISKS
+
+- **The §72 extensibility claim is still unverified.** One battle. This is now the largest
+  untested architectural assumption, and Phase 9 exists to settle it.
+- The AI does not read the tide, so the Yuan commander does not understand that waiting makes its
+  position worse — a competent 13th-century sailor would have. Legitimate to fix (the tide is
+  observable to anyone on the water) but not done.
+- No desktop or Android build has ever been attempted.
+- Cross-platform determinism is designed for but unverified on a device.
+
+### NEXT STEPS
+
+1. **Second battle** (Phase 9). Bạch Đằng 938 is the recommended candidate — it shares the
+   tide/stake mechanic family, so it directly tests whether a new battle really is data plus
+   config, and it lets the 938 story be told honestly with its unsourced numbers labelled.
+2. **Terrain effects** (GAP-02).
+3. **AI tide awareness**.
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **`decide()` must keep taking `ObservedState`.** It is the only thing preventing the AI from
+  reading hidden state, and it is enforced by the signature rather than by care.
+- **Objectives must match their descriptions and be attainable.** Both failed once; tests now
+  assert both.
+
+---
+
 ## SESSION 2 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-7 complete. Fog of war is implemented; the AI commander is next.
+**PHASE AT THE TIME:** Phases 0-7 complete. Fog of war implemented.
 
 ### WHAT WAS DONE
 

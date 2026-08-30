@@ -127,6 +127,21 @@ export type VictoryCondition =
       readonly targetFaction: FactionId;
       readonly fractionNeutralised: number;
       readonly countImmobilised?: boolean;
+    }
+  /**
+   * Get a fraction of one's own force past a line on the map.
+   *
+   * For a force whose goal is to leave rather than to win a fight. Expressing
+   * that as an attrition threshold would be a lie about the objective, and an
+   * AI commander reading the scenario honestly would fight instead of running.
+   */
+  | {
+      readonly kind: 'ESCAPE';
+      /** Escape is achieved at or beyond this x, on whichever side. */
+      readonly beyondX: number;
+      /** Which direction counts as out: 'BELOW' means x <= beyondX. */
+      readonly direction: 'BELOW' | 'ABOVE';
+      readonly fractionEscaped: number;
     };
 
 export interface Objective {
