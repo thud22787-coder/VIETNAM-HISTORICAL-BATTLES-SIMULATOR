@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/productisation`)
+**Last verified commit:** see `git log` (branch `feature/touch-input`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,12 +18,12 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-11 complete (foundation through desktop and Android shells). Next is touch input and
-mobile UX. See [ROADMAP.md](ROADMAP.md).
+Phases 0-12 complete (foundation through touch input and mobile UX). Next is the campaign
+system, or a third battle. See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (231 tests across three packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (262 tests across four packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -80,6 +80,11 @@ Verified by `npm test` (231 tests across three packages, all passing) and `npm r
   asserts the game actually renders.
 - **Android shell (Capacitor)** — native project generates; packages the *same* `game-ui/dist`
   bytes the desktop shell loads, so all targets ship identical application code.
+- **Touch and mouse input** — one Pointer Events code path for both. The interaction model was
+  redesigned rather than patched: tapping empty ground orders a move (the only way to order by
+  touch, so it is the primary path everywhere), drag box-selects, long-press toggles selection.
+  Mobile layout puts controls below the battlefield within thumb reach, with 44px touch targets;
+  four browser tests measure the rendered geometry to prove the layout genuinely differs.
 - **Content Security Policy** — the app declares one matching what it actually does
   (`default-src 'none'`, no `connect-src` at all), so an accidental network dependency would fail
   loudly rather than work silently.
@@ -96,8 +101,8 @@ Nothing is half-finished. The tree is clean and all tests pass.
 
 - **Messenger delay and misinformation** (§18). The architecture allows them — sighting memory is
   per-commander and timestamped — but neither is modelled.
-- **Touch input and mobile UX** (§77). The UI is mouse-oriented. A shrunken desktop layout is
-  explicitly not acceptable, so this is real design work rather than a config change.
+- **Pinch zoom and pan.** Deliberately skipped: both battles fit one screen, so a camera would
+  add state and bugs for no gameplay gain. The input module and `Viewport` are shaped to allow it.
 - **Verification on a physical Android handset.** The engine is the same Chromium that the
   determinism test exercises, but device behaviour, performance and touch are untested on real
   hardware.
@@ -130,10 +135,11 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ```
 sim-core   216 tests — all passing
-game-ui     13 tests — all passing   (includes the browser determinism check)
+game-ui     42 tests — all passing   (gestures, browser determinism, real layout geometry)
 desktop      2 tests — all passing   (launches the real Electron shell)
+android      2 tests — all passing   (APK is valid and ships identical bytes)
 tsc --noEmit — clean
-vite build  — clean (56 KB bundle)
+vite build  — clean (59 KB bundle)
 ```
 
 No tests are skipped: Chromium and Electron are both present on this machine, so the platform
@@ -173,8 +179,8 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **Touch input and mobile UX** (Phase 12). §77 is explicit that mobile is not a smaller
-   desktop. The simulation needs no changes — it already takes commands from any source.
+1. **A third battle, or the campaign system** (Phase 13). ADR-008 sets the honest expectation for
+   a battle: mostly data, plus whatever general capability its mechanic needs.
 2. **AI tide awareness** — the Yuan commander does not understand that waiting makes its position
    worse, which a competent sailor would have known. See AI_COMMANDER_CONTRACT §6.
 3. **A third battle**, if more content is wanted. ADR-008 sets the honest expectation: mostly
@@ -207,3 +213,7 @@ In dependency order:
   the same commit, so the diff shows which numbers moved.
 - **Platform shells stay thin.** No game logic in Electron or Capacitor; if a shell seems to need
   it, it belongs in `sim-core`.
+- **Input stays on one code path.** Pointer Events serve mouse and touch together; a
+  touch-specific branch would be a path most players never exercise, which is how mobile support
+  rots.
+- **`touch-action: none` on the canvas.** Without it a drag pans the page instead of selecting.

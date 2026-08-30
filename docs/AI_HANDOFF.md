@@ -7,11 +7,98 @@ Most recent session first.
 
 ---
 
+## SESSION 6 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-12 complete. Touch input done; campaign or a third battle is next.
+
+### WHAT WAS DONE
+
+Phase 12: touch input and mobile UX (§77).
+
+The important decision was **not to bolt `touchstart` onto the existing handlers**. The old UI
+used `mousedown` + `shiftKey` to select and `contextmenu` to order — a finger has neither a right
+button nor a shift key, so adding touch events would have produced a mouse interface you poke at.
+
+Instead `src/input.ts` is a new module built on Pointer Events, so mouse, touch and stylus arrive
+through the same handlers. The model was redesigned around what a pointer can express:
+
+- tap a unit → select; tap empty ground → **order a move**
+- drag → box-select
+- long-press a unit → toggle it in the selection (the shift-click of touch)
+- right-click → still orders a move, for mouse players
+
+The consequence worth understanding: **tapping empty ground orders a move on every platform**, not
+just mobile. On desktop it reads as a shortcut, but it is the only way a finger can give an order,
+so making it primary means one code path is exercised by every player rather than a mobile branch
+nobody runs.
+
+Layout is genuinely different below 820px rather than merely smaller: controls move *below* the
+battlefield within thumb reach, buttons meet the 44px minimum, and `touch-action: none` stops a
+drag from panning the page instead of selecting.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **262 tests passing** across four packages, **zero skipped**
+- 24 gesture tests drive real pointer sequences through the handlers, covering `touch`, `mouse`
+  and `pen` — a test that only exercised mouse would pass while touch was broken
+- 4 browser tests **measure the rendered geometry** at wide and narrow widths, rather than
+  asserting that a media query exists. Confirmed: desktop keeps controls above the map
+  (topbar top 0, canvas top 65); mobile inverts it (canvas top 0, topbar top 415).
+- The layout guard was checked against a deliberately reintroduced regression
+- APK rebuilt; its bundle is byte-identical to the desktop one (SHA-256)
+
+### A GOOD FAILURE WORTH NOTING
+
+After the input changes, the Android test failed with "the APK ships the same bundle the desktop
+shell loads". That was correct: the APK was **stale**, built before the rewrite. The test caught a
+real staleness problem rather than a code problem, which is what it was written for. Rebuilding
+fixed it.
+
+Also: the CSP added in Session 5 blocked my first attempt at measuring the layout via an inline
+script. The CSP was right and the probe was wrong — the layout test now uses a separate script
+file. Worth knowing if you write browser tooling against this app.
+
+### BRANCH
+
+`feature/touch-input`, branched from `main`.
+
+### KNOWN RISKS
+
+- **Still no physical Android device.** Gesture logic, layout geometry and determinism are all
+  verified against desktop Chromium, which is the same engine, but real hardware is untested.
+- **No test drives input all the way into the simulation** (TD-07). Gestures are tested, the
+  layout is measured, but nothing asserts end-to-end that tap-tap actually moves a unit.
+- Pinch zoom and pan are deliberately absent — both battles fit one screen.
+- The AI still does not read the tide (AI_COMMANDER_CONTRACT §6).
+- Performance is unprofiled; both battles are 14 units.
+
+### NEXT STEPS
+
+1. **A third battle, or the campaign system** (Phase 13). ADR-008 sets the expectation for a
+   battle: mostly data, plus whatever general capability its mechanic needs.
+2. **AI tide awareness**.
+3. A physical device pass, if hardware becomes available.
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **Input stays on one code path.** Pointer Events serve mouse and touch together. A
+  touch-specific branch would be a path most players never exercise, which is how mobile support
+  rots.
+- **`touch-action: none` on the canvas.** Without it, dragging a selection box pans the page.
+- **The 44px touch minimum.** A button sized to look neat on a desktop is genuinely hard to hit
+  while holding a phone; a browser test enforces it.
+
+---
+
 ## SESSION 5 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-11 complete. Desktop and Android both build. Touch input is next.
+**PHASE AT THE TIME:** Phases 0-11 complete. Desktop and Android both build.
 
 ### WHAT WAS DONE
 

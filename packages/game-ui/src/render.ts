@@ -25,6 +25,7 @@ import type {
   TerrainCell,
   ObservedState,
   ObservedUnit,
+  Position,
 } from '@vhbs/sim-core';
 import { isWaterborne, canAct, estimateOf } from '@vhbs/sim-core';
 
@@ -84,6 +85,8 @@ export interface RenderInput {
   readonly tide: TideState | null;
   readonly selected: ReadonlySet<UnitId>;
   readonly viewport: Viewport;
+  /** Selection box being dragged, if any. Purely visual feedback. */
+  readonly dragBox?: { readonly from: Position; readonly to: Position } | null;
 }
 
 export function render(ctx: CanvasRenderingContext2D, input: RenderInput): void {
@@ -166,6 +169,25 @@ export function render(ctx: CanvasRenderingContext2D, input: RenderInput): void 
   }
   for (const unit of observed.own) {
     drawUnit(ctx, unit, scale, selected.has(unit.id));
+  }
+
+  /* --- Drag selection box, over everything --- */
+
+  if (input.dragBox) {
+    const { from, to } = input.dragBox;
+    const x = Math.min(from.x, to.x) / scale;
+    const y = Math.min(from.y, to.y) / scale;
+    const w = Math.abs(to.x - from.x) / scale;
+    const h = Math.abs(to.y - from.y) / scale;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(232, 176, 75, 0.12)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = COLOURS.daiViet;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
   }
 }
 

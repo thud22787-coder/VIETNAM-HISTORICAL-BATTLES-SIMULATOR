@@ -94,6 +94,18 @@ place.
 **Proposed fix:** keep the TS contract as the source of truth, add a JSON loader that validates
 against it. Not urgent until external authoring matters.
 
+### TD-07 — No test drives the full input-to-simulation path
+
+`input.test.mjs` covers gesture interpretation thoroughly, and the layout tests measure real
+geometry, but nothing asserts end-to-end that "tap a unit, tap the ground" actually moves a unit
+in the simulation. The two halves are each tested; the seam between them is not.
+
+**Why:** it needs a browser harness that can synthesise pointer events against the live shell,
+which is more machinery than the seam currently justifies.
+
+**Proposed fix:** if the input model grows (a command menu, unit stances), add one Playwright-style
+test rather than expanding the fake-canvas harness to simulate the whole app.
+
 ### TD-06 — The Android APK build depends on machine-local SDK configuration
 
 `ANDROID_HOME` is commonly unset even where the SDK is installed, and the generated `android/`
@@ -157,8 +169,11 @@ Until RD-01 and RD-04 close, stake **positions** and absolute depths in the scen
   [ADR-009](DECISIONS/ADR-009-platform-shells.md).
 - **Not verified: a physical Android handset.** The engine is the same Chromium, but
   device-specific behaviour, performance and touch handling are untested on real hardware.
-- **Not done: touch input design** (§77). The UI is mouse-oriented. A shrunken desktop layout is
-  explicitly not acceptable, so this is real work rather than a config change.
+- **Touch input: done.** Pointer Events throughout, so mouse and touch share one code path.
+  Tap to select, tap ground to order, drag to box-select, long-press to add. Layout reorders on
+  narrow screens so controls sit under the thumb; browser tests measure the geometry.
+- **Not done: pinch zoom and pan.** Deliberate — both battles fit one screen, so a camera would
+  add state and bugs for no gain. See Phase 12 in [ROADMAP.md](ROADMAP.md).
 - **Performance is unprofiled.** The battles are 14 units each; no measurement exists at scale.
 - **The §72 extensibility claim is now evidence-backed**, not merely intended — see
   [ADR-008](DECISIONS/ADR-008-extensibility-verdict.md). Two battles exist with entirely

@@ -34,7 +34,24 @@
   #app { display: grid; grid-template-columns: 1fr 300px; height: 100vh; }
   #stage { position: relative; display: flex; flex-direction: column; min-width: 0; }
   #canvasWrap { flex: 1; position: relative; min-height: 0; }
-  canvas { display: block; cursor: crosshair; }
+  /* Feedback for actions that have no other visible result -- confirming an
+     order matters most on touch, where there is no cursor to reassure you. */
+  #hint {
+    position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+    background: rgba(18,22,28,.9); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 999px; font-size: 13px;
+    pointer-events: none; opacity: 0; transition: opacity .18s;
+    max-width: 80%; text-align: center;
+  }
+  canvas {
+    display: block; cursor: crosshair;
+    /* A finger on the battlefield gives orders; it must not scroll or zoom the
+       page, and a long-press must not raise the text-selection callout. */
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 
   /* ---- top bar ---- */
   #topbar {
@@ -51,6 +68,10 @@
   button {
     background: #1f2733; color: var(--text); border: 1px solid var(--border);
     padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;
+    /* 44px is the usual minimum comfortable touch target; a 6px-padded button
+       is about 30px and is genuinely hard to hit while holding a phone. */
+    min-height: 44px; min-width: 44px;
+    touch-action: manipulation;
   }
   button:hover { background: #2a3542; }
   button.active { background: var(--accent); color: #1a1207; border-color: var(--accent); }
@@ -128,9 +149,50 @@
   }
   .actions { margin-top: 22px; display: flex; gap: 10px; }
 
+  /* ---- Mobile (§77): not a shrunken desktop ----
+     The battlefield takes the screen, the controls sit under the thumb, and
+     the panels that matter mid-battle stay visible while the rest collapses. */
   @media (max-width: 820px) {
-    #app { grid-template-columns: 1fr; grid-template-rows: 1fr 240px; }
-    #sidebar { border-left: none; border-top: 1px solid var(--border); }
+    #app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    #sidebar {
+      border-left: none; border-top: 1px solid var(--border);
+      max-height: 38vh;
+    }
+
+    /* Controls move below the map, within thumb reach, rather than staying at
+       the top of the screen where a one-handed grip cannot get to them. */
+    #stage { flex-direction: column; }
+    #topbar {
+      order: 2;
+      border-bottom: none; border-top: 1px solid var(--border);
+      gap: 10px; padding: 8px 10px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      justify-content: space-between;
+    }
+    #canvasWrap { order: 1; }
+
+    /* Readouts shrink; the tide gauge and the channel warning survive, because
+       they are what the battle is actually about. */
+    .stat .label { font-size: 9px; }
+    .stat .value { font-size: 12px; }
+    #tideGauge { width: 20px; height: 34px; }
+    .spacer { display: none; }
+
+    /* Speed buttons are secondary on a small screen. */
+    button[data-speed] { padding: 6px 9px; min-width: 40px; font-size: 12px; }
+
+    .section { padding: 10px 12px; }
+    #log { font-size: 11px; }
+
+    .modal { padding: 20px 18px; max-height: 88vh; }
+    .modal h1 { font-size: 20px; }
+  }
+
+  /* Very small screens: drop the least load-bearing readouts entirely rather
+     than letting the control bar wrap into two rows. */
+  @media (max-width: 480px) {
+    #statPhase { display: none; }
+    #stepBtn { display: none; }
   }
 </style>
 </head>
@@ -140,7 +202,7 @@
     <div id="topbar">
       <div id="tideGauge"><div id="tideBar" style="height:100%"></div></div>
       <div class="stat"><span class="label">Tide</span><span class="value" id="tideLevel">—</span></div>
-      <div class="stat"><span class="label">Phase</span><span class="value" id="tidePhase">—</span></div>
+      <div class="stat" id="statPhase"><span class="label">Phase</span><span class="value" id="tidePhase">—</span></div>
       <div class="stat"><span class="label">Channel</span><span class="value" id="trapStatus">—</span></div>
       <div class="stat"><span class="label">Elapsed</span><span class="value" id="clock">T+00:00</span></div>
       <div class="spacer"></div>
@@ -151,7 +213,7 @@
       <button data-speed="12">12×</button>
       <button id="restartBtn">Restart</button>
     </div>
-    <div id="canvasWrap"><canvas id="battlefield"></canvas></div>
+    <div id="canvasWrap"><canvas id="battlefield"></canvas><div id="hint"></div></div>
   </div>
 
   <div id="sidebar">
@@ -186,7 +248,9 @@
 
     <h3 id="briefCommandTitle">Your command</h3>
     <p style="font-size:13px" class="dim">
-      Left-click selects, shift-click adds, right-click orders a move.
+      Tap a unit to select it, then tap the ground to order a move. Drag to
+      box-select; press and hold a unit to add it to the selection. With a mouse,
+      right-click also gives a move order.
     </p>
 
     <div class="note" id="briefNote">
