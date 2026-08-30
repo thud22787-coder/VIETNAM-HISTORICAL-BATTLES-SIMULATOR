@@ -5,8 +5,8 @@ A historical battle simulation and strategy platform for Vietnamese history.
 Play a historical battle, command the forces, watch the simulation resolve, see why it turned
 out that way — then change a variable and find out what the model does differently.
 
-> **Status: early foundation.** The simulation core and one complete battle work end to end and
-> are tested. There is **no user interface yet** — the core is driven from tests and code.
+> **Status: early but playable.** The simulation core, one complete battle and a browser UI work
+> end to end and are tested. No desktop or Android build has been attempted yet.
 > See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for an honest account of what exists.
 
 ---
@@ -43,8 +43,10 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 138 tests
+npm test          # 140 tests
 npm run typecheck
+
+npm run dev -w @vhbs/game-ui   # play it at http://localhost:5173
 ```
 
 Requires Node 20+ (developed on Node 24). The simulation core runs TypeScript natively with no
@@ -53,6 +55,7 @@ build step.
 ## Repository layout
 
 ```
+packages/game-ui/         browser UI (canvas battlefield, orders, analysis)
 packages/sim-core/        platform-independent simulation core
   src/history/            epistemic status, uncertain quantities, baseline, what-if
   src/domain/             units, commanders, events, battle state
