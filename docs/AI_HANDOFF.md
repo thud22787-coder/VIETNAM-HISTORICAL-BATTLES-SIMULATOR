@@ -7,11 +7,100 @@ Most recent session first.
 
 ---
 
+## SESSION 8 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-13 complete. Campaign system done; a third battle or an operational
+campaign is next.
+
+### WHAT WAS DONE
+
+Phase 13, the campaign system. See [CAMPAIGN_CONTRACT.md](CAMPAIGN_CONTRACT.md).
+
+Linking battles is the easy half. The half worth building carefully is §37: **a campaign that
+departs from the historical record must say so, and keep saying so.** A player who wins a battle
+history records as a defeat has not corrected the record — they have started a counterfactual, and
+every battle after it is downstream of a fiction.
+
+So `divergence` is one-way, `HISTORICAL → DIVERGED`, with no route back and no API for one.
+Winning the *next* battle correctly does not restore the historical line, because the campaign
+that was actually played still went the other way. A diverged campaign is relabelled
+`WHAT-IF CAMPAIGN` permanently.
+
+### THE HONESTY PROBLEM IN THE SHIPPED CAMPAIGN
+
+The two battles we have are **139 years apart** — Bạch Đằng 1288 and Chi Lăng 1427, different
+dynasties, different invaders, no shared army or commander. Calling that an operational campaign
+would be a lie about the history.
+
+`RESISTANCE` is therefore explicitly **thematic, not operational**: battles that pose the same
+tactical problem, presented in order, with the briefing and assumptions saying plainly that no
+army marched from one to the other. `lossPersistence` is 0 at every step, and a test asserts it
+stays that way.
+
+The carry-forward machinery still exists and is fully tested — against a *synthetic* operational
+campaign in the test file. It is the right shape for a real one; we just do not have the content
+for it yet. An operational campaign (the engagements of a single Lam Sơn year, say) is the obvious
+next piece of work and would exercise it against real history.
+
+### A GUARD THAT ASKED A GOOD QUESTION
+
+The `no-battle-branches` test failed on `campaigns/resistance.ts`, which names both battles.
+
+That needed thought rather than a reflexive exclusion. The answer: a *campaign* naming its battles
+is its entire content, exactly as a scenario naming its terrain is. The campaign **engine**
+(`campaign.ts`) must stay generic, and it does — I verified the guard still catches a planted
+`scenario.id ===` inside the engine after narrowing it to exempt only the content directory.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **294 tests passing** across four packages, **zero skipped**
+- A full AI-vs-AI campaign runs end to end. It diverged at the first battle and was correctly
+  relabelled `WHAT-IF CAMPAIGN` with hedged language about what that means.
+- The historical path also verified: matching both battles keeps the `HISTORICAL CAMPAIGN` label,
+  and the completion text stays hedged ("consistent with the account, but not evidence for any
+  particular explanation").
+- The narrowed guard was re-checked against a planted violation in the campaign engine.
+
+The simulation was untouched, so the fingerprint and APK stayed valid — no version bump needed.
+
+### BRANCH
+
+`feature/campaign`, branched from `main`.
+
+### KNOWN RISKS
+
+- **Carry-forward is tested only against a synthetic campaign.** The shipped one deliberately
+  carries nothing, so that code path has no real content exercising it.
+- **Still no physical Android device.**
+- The AI has no model of its opponent and no formation tactics.
+- TD-07: nothing drives input all the way into the simulation.
+- Performance is unprofiled; both battles are 14 units.
+
+### NEXT STEPS
+
+1. **An operational campaign or a third battle** (Phase 14). An operational campaign would give
+   carry-forward real content to work against.
+2. A physical device pass, if hardware becomes available.
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **Campaign divergence must stay one-way.** A reset would let a counterfactual campaign present
+  itself as the historical one, which is exactly what §37 forbids.
+- **`applyCarryForward` must keep returning a new scenario.** Mutating the shared battle
+  definition would make a second playthrough start from the first one's damage.
+- **RESISTANCE must keep carrying nothing forward** while its battles are a century apart.
+
+---
+
 ## SESSION 7 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-12 complete plus AI tide awareness. Campaign or a third battle next.
+**PHASE AT THE TIME:** Phases 0-12 complete plus AI tide awareness.
 
 ### WHAT WAS DONE
 

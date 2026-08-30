@@ -22,18 +22,26 @@ const walk = (dir: string): string[] =>
   });
 
 /**
- * Engine and framework files — everything except battle data and the two places
- * that legitimately enumerate battles.
+ * Engine and framework files — everything except content and the places that
+ * legitimately enumerate battles.
  *
- * `src/index.ts` is the package export registry, and `src/testing/` holds the
- * determinism fingerprint, which must run *specific* battles to be a
- * fingerprint at all. Neither decides anything about how a battle is
- * simulated, which is what this guard is protecting.
+ * Excluded, and why each is content rather than engine:
+ *  - `scenario/battles/` and `campaign/campaigns/` ARE the battle and campaign
+ *    data. A campaign naming its battles is its entire purpose, exactly as a
+ *    scenario naming its terrain is. The campaign *engine* (`campaign.ts`) is
+ *    still covered by this guard and stays generic.
+ *  - `src/index.ts` is the package export registry.
+ *  - `src/testing/` holds the determinism fingerprint, which must run specific
+ *    battles to be a fingerprint at all.
+ *
+ * None of them decides how a battle is simulated, which is what this guard
+ * protects.
  */
 const engineFiles = walk(srcDir).filter(
   (f) =>
     f.endsWith('.ts') &&
     !f.includes(join('scenario', 'battles')) &&
+    !f.includes(join('campaign', 'campaigns')) &&
     !f.includes(join('src', 'testing')) &&
     !f.endsWith(join('src', 'index.ts')),
 );

@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/ai-tide`)
+**Last verified commit:** see `git log` (branch `feature/campaign`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,12 +18,12 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-12 complete (foundation through touch input and mobile UX). Next is the campaign
-system, or a third battle. See [ROADMAP.md](ROADMAP.md).
+Phases 0-13 complete (foundation through the campaign system). Next is a third battle or an
+operational campaign. See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (263 tests across four packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (294 tests across four packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -80,6 +80,11 @@ Verified by `npm test` (263 tests across four packages, all passing) and `npm ru
   asserts the game actually renders.
 - **Android shell (Capacitor)** — native project generates; packages the *same* `game-ui/dist`
   bytes the desktop shell loads, so all targets ship identical application code.
+- **Campaign system** — battles linked, with optional carry-forward of losses. Divergence from
+  the historical record is one-way and permanent: a campaign that departs from it is relabelled
+  `WHAT-IF CAMPAIGN` for good, with no API to reset. The shipped `RESISTANCE` campaign is
+  deliberately thematic rather than operational, because its two battles are 139 years apart, and
+  a test asserts it carries nothing forward. See [CAMPAIGN_CONTRACT.md](CAMPAIGN_CONTRACT.md).
 - **AI tide awareness** — the commander reads the tide from `ObservedState` (legitimate: anyone
   on the water can see the water) and no longer freezes in a draining channel. Closing this gap
   exposed that the Bạch Đằng tide was mistimed so badly the heavy squadrons could not reach the
@@ -111,7 +116,6 @@ Nothing is half-finished. The tree is clean and all tests pass.
 - **Verification on a physical Android handset.** The engine is the same Chromium that the
   determinism test exercises, but device behaviour, performance and touch are untested on real
   hardware.
-- **Campaign system** (§36-37).
 
 ## KNOWN BUGS
 
@@ -139,7 +143,7 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   217 tests — all passing
+sim-core   248 tests — all passing
 game-ui     42 tests — all passing   (gestures, browser determinism, real layout geometry)
 desktop      2 tests — all passing   (launches the real Electron shell)
 android      2 tests — all passing   (APK is valid and ships identical bytes)
@@ -184,8 +188,10 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **A third battle, or the campaign system** (Phase 13). ADR-008 sets the honest expectation for
-   a battle: mostly data, plus whatever general capability its mechanic needs.
+1. **A third battle, or an operational campaign** (Phase 14). An operational campaign would
+   exercise carry-forward against real history rather than the synthetic fixture it is currently
+   tested with. ADR-008 sets the expectation for a battle: mostly data, plus whatever general
+   capability its mechanic needs.
 
 ## DO NOT BREAK
 
@@ -218,3 +224,5 @@ In dependency order:
   touch-specific branch would be a path most players never exercise, which is how mobile support
   rots.
 - **`touch-action: none` on the canvas.** Without it a drag pans the page instead of selecting.
+- **Campaign divergence must stay one-way.** A reset would let a counterfactual campaign present
+  itself as the historical one, which is precisely what §37 forbids.

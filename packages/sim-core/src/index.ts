@@ -37,6 +37,10 @@ export * from './sim/replay.ts';
 export * from './state/validator.ts';
 export * from './state/observed.ts';
 
+/* Campaign */
+export * from './campaign/campaign.ts';
+export { RESISTANCE_CAMPAIGN } from './campaign/campaigns/resistance.ts';
+
 /* AI */
 export * from './ai/commander.ts';
 
