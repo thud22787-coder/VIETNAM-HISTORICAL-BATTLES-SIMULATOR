@@ -22,6 +22,14 @@
  * explanation can say what the AI actually believed rather than a plausible
  * story invented afterwards.
  *
+ * It DOES read the tide, and that is not a cheat. Anyone on the water can see
+ * whether it is rising or falling and roughly how far it has dropped from the
+ * marks on the bank; a 13th-century sailor read it better than this models it.
+ * Withholding it would make the commander stupid in a way no real one was. The
+ * honest boundary is that the tide is observable and what lies *under* it is
+ * not — so the fleet knows the water is leaving, and still does not know what
+ * it is leaving it on.
+ *
  * THREE LAYERS (§33)
  *
  *   Strategic   — what am I trying to achieve? (break out / destroy / hold)
@@ -134,6 +142,22 @@ export const AI_TUNING = {
   hazardClusterM: 400,
   /** Distance at which a unit is considered "at" its objective. */
   arrivalToleranceM: 250,
+  /**
+   * How much water a commander wants over their deepest hull before they stop
+   * worrying about the ebb, in metres.
+   *
+   * Generous on purpose. The useful moment to notice a falling tide is while
+   * there is still time to act on it, not once the keel is already touching.
+   *
+   * Two earlier attempts at this number were wrong in the same way, and it is
+   * worth recording why. Both compared the water level against the hull plus a
+   * flat margin and fired only after the fleet had already grounded, because
+   * the thing that actually strands a ship is not shallow water in general --
+   * it is shallow water *over an obstruction*. Once the commander has learned
+   * where an obstruction is (by losing a ship on it), that is what the margin
+   * should be measured against.
+   */
+  tideComfortMarginM: 1.6,
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -216,6 +240,17 @@ interface Assessment {
   readonly staleContacts: number;
   readonly ownInTrouble: number;
   readonly enemyInTrouble: number;
+  /**
+   * Whether the water is leaving and there is not much of it left.
+   *
+   * Judged from the observed tide alone — falling, and shallow enough that a
+   * deep-draft hull is running out of margin. The commander does not know what
+   * is under the water; it knows the water is going.
+   */
+  readonly waterFalling: boolean;
+  readonly waterLevelM: number | null;
+  /** Deepest hull the commander still has afloat; 0 if the force is not naval. */
+  readonly deepestDraftM: number;
 }
 
 function assess(observed: ObservedState): Assessment {
@@ -228,6 +263,35 @@ function assess(observed: ObservedState): Assessment {
     0,
   );
 
+  const tide = observed.tide;
+
+  // A commander knows their own ships. The deepest hull still afloat is what
+  // sets the deadline -- there is no point reasoning about an average.
+  const deepestDraftM = active
+    .filter((u) => isWaterborne(u.kind))
+    .reduce((deepest, u) => Math.max(deepest, u.draftM ?? 0), 0);
+
+  // What counts as dangerously shallow depends on what is under the water.
+  //
+  // If the commander has learned about an obstruction -- by losing a ship on it
+  // -- they can reason about it properly: the water must stay above the
+  // obstruction by at least a hull's depth. Until then they have only the
+  // general worry that a draining channel is bad for a deep hull.
+  //
+  // This is the honest version of the knowledge. It uses `knownObstacles`,
+  // which the observation layer has already filtered to what this side placed,
+  // and `suspectedHazards`, which the commander inferred by paying for it. It
+  // never reads the true obstacle list.
+  const knownObstacleTopM = observed.knownObstacles.reduce(
+    (highest, f) => Math.max(highest, f.topHeightM),
+    Number.NEGATIVE_INFINITY,
+  );
+
+  const threshold =
+    knownObstacleTopM > Number.NEGATIVE_INFINITY
+      ? knownObstacleTopM + deepestDraftM + AI_TUNING.tideComfortMarginM
+      : deepestDraftM + AI_TUNING.tideComfortMarginM;
+
   return {
     ownStrength: active.reduce((s, u) => s + u.strength, 0),
     ownInitial: own.reduce((s, u) => s + u.initialStrength, 0),
@@ -236,6 +300,10 @@ function assess(observed: ObservedState): Assessment {
     staleContacts: observed.enemies.length - inContact.length,
     ownInTrouble: own.filter((u) => u.status === 'IMMOBILISED').length,
     enemyInTrouble: inContact.filter((e) => e.apparentStatus === 'IN_TROUBLE').length,
+    waterFalling:
+      deepestDraftM > 0 && tide !== null && tide.phase === 'EBB' && tide.levelM < threshold,
+    waterLevelM: tide?.levelM ?? null,
+    deepestDraftM,
   };
 }
 
@@ -254,6 +322,14 @@ function choosePosture(
 
   if (strengthFraction < AI_TUNING.regroupStrengthFraction) {
     return { posture: 'REGROUP', reason: 'own force badly reduced' };
+  }
+
+  // A falling tide overrides caution for a fleet trying to leave. Hesitating in
+  // a draining channel is the worst available choice: it neither escapes nor
+  // avoids the danger, and every minute makes the water shallower. This is the
+  // judgement a real sailor would have made without thinking about it.
+  if (strategy.kind === 'BREAK_OUT' && a.waterFalling) {
+    return { posture: 'RUN', reason: 'the tide is ebbing and the water is running out' };
   }
 
   // Own vessels stopping dead is the signal that something is wrong here, even
@@ -560,6 +636,13 @@ export function decide(
       ownImmobilised: assessment.ownInTrouble,
       enemyInDifficulty: assessment.enemyInTrouble,
       previousPosture: ai.posture,
+      ...(assessment.waterLevelM === null
+        ? {}
+        : {
+            waterLevelM: Number(assessment.waterLevelM.toFixed(2)),
+            waterFalling: assessment.waterFalling,
+            deepestDraftM: Number(assessment.deepestDraftM.toFixed(2)),
+          }),
     });
   }
 

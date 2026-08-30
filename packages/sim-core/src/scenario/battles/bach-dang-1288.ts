@@ -375,16 +375,30 @@ export const BACH_DANG_1288: BattleScenario = {
     // the sea, it is clear of the obstructions long before the water drops and
     // the trap is decorative.
     //
-    // So high water is set at hour -1.5 (i.e. before the battle opens): play
-    // begins on an ebb already underway, with roughly 2.4m of water over the
-    // stakes and falling. Deep-draft ships (1.5m + 0.2m clearance = 1.7m)
-    // have a window of a little over two hours to get out. That is genuinely
-    // tight, and it is what makes the Yuan player's timing decision real.
+    // So high water is set just before play opens: the battle begins on an ebb
+    // already underway and the water is going the whole time.
+    //
+    // The exact hour is dictated by arithmetic, not feel. A heavy hull needs
+    // 2.7m of water over the 1.0m stakes (1.5m draft + 0.2m clearance) and
+    // takes 1.62h at 2600 m/h to travel from its start at x=5400 to the far
+    // side of the stake field at x=1200. So the channel must stay open to deep
+    // hulls for a little longer than that, or the timing is not a decision at
+    // all -- the fleet is simply doomed from tick zero.
+    //
+    // At -0.8 the channel closes to heavy hulls at about 1.8h. Measured against
+    // the AI and against scripted departure times: a fleet that sails at once
+    // gets 7 of 8 vessels out and wins; a fleet that waits thirty minutes gets
+    // 3 out and loses. That half-hour gap IS the game.
+    //
+    // This was previously -1.5, which closed the channel at 1.03h -- before the
+    // heavy squadrons could physically reach the stakes even sailing flat out.
+    // Their loss was predetermined, which is why AI tide awareness made no
+    // measurable difference until this was fixed.
     tide: {
       periodHours: 24.8,
       lowWaterM: 0,
       highWaterM: 3.0,
-      highWaterAtHour: -1.5,
+      highWaterAtHour: -0.8,
     },
     obstacleFields: [
       {

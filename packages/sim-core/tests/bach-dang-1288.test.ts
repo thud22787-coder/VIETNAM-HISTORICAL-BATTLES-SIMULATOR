@@ -170,18 +170,41 @@ describe('the tide is the decisive variable (ADR-007)', () => {
     assert.ok(strikeCount(runWithDeparture(24)) > 0, 'no vessel ever struck the obstacle field');
   });
 
-  test('departing immediately gets ships out; waiting for the ebb does not', () => {
+  test('departing immediately saves the heavy squadrons; waiting loses them', () => {
     // THE central property. The Yuan timing decision must matter, because the
     // tide is the evidenced part of this battle (S-002) and the troop counts
     // are not (S-005).
+    //
+    // The right measure is WHICH ships get out, not how many. Shallow-draft
+    // junks clear the obstructions at almost any tide, so counting hulls hides
+    // the actual decision. What the ebb takes away is the ability to get a
+    // deep-draft hull through, and that is what this asserts.
+    const heavyOut = (s: BattleState): number =>
+      s.units.filter(
+        (u) =>
+          u.faction === YUAN &&
+          u.kind === 'HEAVY_SHIP' &&
+          canAct(u) &&
+          u.status !== 'IMMOBILISED' &&
+          u.position.x <= 600,
+      ).length;
+
     const early = runWithDeparture(0);
     const late = runWithDeparture(24);
 
     assert.ok(
-      reachedOpenWater(early) > reachedOpenWater(late),
-      `early departure must save more ships (early=${reachedOpenWater(early)}, late=${reachedOpenWater(late)})`,
+      heavyOut(early) > 0,
+      'a fleet that sails at once must get some heavy squadrons out, or the timing is not a decision',
     );
-    assert.equal(reachedOpenWater(late), 0, 'a fleet that waits for the ebb should not escape');
+    assert.equal(
+      heavyOut(late),
+      0,
+      'a fleet that waits two hours must lose every deep-draft hull to the ebb',
+    );
+    assert.ok(
+      reachedOpenWater(early) > reachedOpenWater(late),
+      `early departure must save more overall (early=${reachedOpenWater(early)}, late=${reachedOpenWater(late)})`,
+    );
   });
 
   test('a fleet that lingers is caught by the falling tide', () => {
@@ -193,11 +216,21 @@ describe('the tide is the decisive variable (ADR-007)', () => {
   });
 
   test('the escape window is real — departure time changes how many get out', () => {
-    // The fleet needs ~1.6h to reach the obstructions; the channel closes to
-    // deep hulls at ~2h. If this window widens to hours or vanishes entirely,
-    // the time geometry has regressed and the battle stops being a decision.
-    assert.ok(reachedOpenWater(runWithDeparture(0)) > 0, 'immediate departure must be survivable');
-    assert.equal(reachedOpenWater(runWithDeparture(24)), 0, 'a two-hour delay must be fatal');
+    // A heavy hull needs 1.62h to travel from its start to the far side of the
+    // stake field, and the channel closes to it at about 1.8h. That margin --
+    // roughly twenty-five minutes -- is the whole game. If it widens to hours
+    // or vanishes, the time geometry has regressed.
+    //
+    // An earlier version of this test asserted that a delayed fleet escapes
+    // with NOBODY. That was true only because the tide was mistimed so badly
+    // that the heavy squadrons could not reach the obstructions before the
+    // channel shut, even sailing flat out from tick zero: their loss was
+    // predetermined rather than decided. See the tide comment in the scenario.
+    const early = reachedOpenWater(runWithDeparture(0));
+    const late = reachedOpenWater(runWithDeparture(24));
+
+    assert.ok(early > late, `sailing at once must beat waiting (${early} vs ${late})`);
+    assert.ok(late > 0, 'the shallow-draft escorts should still get out — they always could');
   });
 
   test('the player must convert the trap — passivity never wins', () => {
