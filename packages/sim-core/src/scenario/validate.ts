@@ -124,6 +124,18 @@ export function validateScenario(scenario: BattleScenario): ScenarioProblem[] {
     if (cond.kind === 'FLEET_NEUTRALISED' && !factionIds.has(cond.targetFaction)) {
       err('BROKEN_OBJECTIVE_TARGET', `Objective ${o.id} targets unknown faction ${cond.targetFaction}.`);
     }
+    if (cond.kind === 'ESCAPE') {
+      if (cond.fractionEscaped <= 0 || cond.fractionEscaped > 1) {
+        err('INVALID_ESCAPE_FRACTION', `Objective ${o.id} fractionEscaped must be in (0,1].`);
+      }
+      const widthM = scenario.terrain.widthCells * scenario.terrain.cellSizeM;
+      if (cond.beyondX < 0 || cond.beyondX > widthM) {
+        err(
+          'ESCAPE_LINE_OFF_MAP',
+          `Objective ${o.id} escape line x=${cond.beyondX} lies outside the map (0..${widthM}).`,
+        );
+      }
+    }
   }
 
   if (!factionIds.has(scenario.timeLimit.favours)) {

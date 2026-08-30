@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/fog-of-war`)
+**Last verified commit:** see `git log` (branch `feature/ai-commander`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,12 +18,12 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-7 complete (foundation through fog of war). Next is the AI commander.
-See [ROADMAP.md](ROADMAP.md).
+Phases 0-8 complete (foundation through the AI commander). Next is a second battle, which is
+the first real test of the §72 extensibility claim. See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (171 tests across both packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (194 tests across both packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -60,6 +60,13 @@ Verified by `npm test` (171 tests across both packages, all passing) and `npm ru
   by witnessability. Enforces INV-23/INV-24; `assertNoLeaks` is checked at every tick of a real
   battle. Observed types are structurally distinct from domain types, so consuming ground truth
   is a type error rather than a silent cheat.
+- **AI commander** — three-layer (strategic → operational → tactical), reading only
+  `ObservedState`. Strategy derived from scenario objectives, not hard-coded. Infers the obstacle
+  field from its own ships stopping, having started with no knowledge of it. Every decision
+  recorded with its basis, so explanations reflect real decision data (§35). Runs the Yuan fleet
+  in the UI.
+- **ESCAPE victory condition** — for a force whose objective is to leave rather than to win a
+  fight.
 - **Playable browser UI** — canvas battlefield with tide-aware terrain shading, unit selection
   and move orders, play/pause/speed, live tide and "channel closes in…" countdown, battle log,
   and a post-battle screen showing findings with their OBSERVED / INFERRED / SPECULATIVE labels
@@ -71,9 +78,6 @@ Nothing is half-finished. The tree is clean and all tests pass.
 
 ## NOT STARTED
 
-- **AI commander** (§31-35). The Yuan fleet is run by a deliberately simple scripted opponent in
-  the UI (`enemyCommands` in `main.ts`). It already reads only its own observed view, so the
-  constraint is in place; what is missing is any actual strategy or tactical reasoning.
 - **Messenger delay and misinformation** (§18). The architecture allows them — sighting memory is
   per-commander and timestamped — but neither is modelled.
 - **Terrain effects on movement and combat.** Terrain is modelled in the scenario and used for
@@ -110,10 +114,10 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   164 tests — all passing
-game-ui      7 tests — all passing
+sim-core   186 tests — all passing
+game-ui      8 tests — all passing
 tsc --noEmit — clean in both packages
-vite build  — clean (40 KB bundle)
+vite build  — clean (46 KB bundle)
 ```
 
 Covered: epistemic model, RNG determinism, tide physics, invariants, baseline immutability,
@@ -144,10 +148,12 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **AI commander** (Phase 8), replacing the scripted opponent. Fog of war now makes this honest
-   by construction — the AI is handed an `ObservedState` with no route back to ground truth.
-2. **A second battle**, to test the extensibility claim in §72 before more is built on it.
-3. **Terrain effects** (GAP-02), so the marsh and tidal flats stop being decorative.
+1. **A second battle** (Phase 9). This is now the biggest untested assumption in the project:
+   the architecture claims adding a battle is data plus config, and only a second battle can
+   verify it.
+2. **Terrain effects** (GAP-02), so the marsh and tidal flats stop being decorative.
+3. **AI tide awareness** — the Yuan commander does not understand that waiting makes its position
+   worse, which a competent sailor would have known. See AI_COMMANDER_CONTRACT §6.
 
 ## DO NOT BREAK
 
@@ -163,5 +169,8 @@ In dependency order:
 - **Invariant violations must throw, never self-repair.**
 - **Passive play must not win Bạch Đằng.** The obstacles only hold vessels fast; converting that
   into a result is the player's job. A test asserts this across several seeds.
-- **Nothing may render or decide from ground truth when fog is on.** The UI takes `ObservedState`;
-  tests catch any attempt to widen that back to `BattleState`.
+- **Nothing may render or decide from ground truth when fog is on.** The UI takes `ObservedState`,
+  and so does the AI's `decide()`; tests catch any attempt to widen either back to `BattleState`.
+- **Objectives must match their own descriptions and be attainable.** Tests assert both, because
+  both failed once: the Yuan objective said "break out to sea" while rewarding attrition, and its
+  escape threshold was briefly set to a figure no amount of good play could reach.

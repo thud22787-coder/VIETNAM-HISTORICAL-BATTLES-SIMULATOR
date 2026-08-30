@@ -61,21 +61,25 @@ The UI renders exclusively from the observed state, so contact is genuinely lost
 during play, and the Yuan never learn where the stake field is — they sail into it for the same
 reason the historical fleet did.
 
+### Phase 8 — AI commander ✅
+
+Three-layer commander (strategic → operational → tactical) reading only `ObservedState`. Strategy
+is derived from the scenario's own objectives rather than hard-coded. The AI infers the stake
+field from watching its own ships stop dead — it starts knowing nothing and only learns by losing
+vessels. Every decision is recorded with the observations it was based on, so the post-battle
+explanation reflects real decision data (§35).
+
+See [AI_COMMANDER_CONTRACT.md](AI_COMMANDER_CONTRACT.md).
+
 ---
 
 ## Next
 
-### Phase 8 — AI commander ← **start here**
-
-Phase 7 is done, so the constraint that makes this honest is now structural: the AI is handed an
-`ObservedState` and there is no route from it back to ground truth. The scripted placeholder in
-`main.ts` already reads its own observed view; replace it.
+### Phase 9 — Second battle ← **start here**
 
 Scope: objectives → operational plan → tactical orders; decisions made from the observed view
 only; a decision log so post-battle explanations reflect real decision data rather than plausible
 narrative (§35).
-
-### Phase 9 — Second battle
 
 **Why it matters:** this is the test of §72. The architecture *claims* a new battle is data plus
 config. That claim is currently unverified.

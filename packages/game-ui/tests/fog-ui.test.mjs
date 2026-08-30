@@ -38,20 +38,27 @@ test('the shell renders from the observed view', () => {
   assert.match(mainSrc, /render\(ctx,\s*\{\s*observed:\s*playerView/);
 });
 
-test('the scripted opponent reads its own observed view', () => {
-  // The placeholder AI must obey the same constraint the real one will, or the
-  // constraint will be discovered to be broken only after Phase 8 is built.
+test('the AI opponent decides from its own observed view', () => {
+  // The AI is a player, not an admin (section 34). It must reach the battle
+  // only through observe(), and its orders must come from decide() -- which
+  // takes an ObservedState and has no parameter for ground truth.
   const fn = mainSrc.slice(
     mainSrc.indexOf('function enemyCommands('),
     mainSrc.indexOf('function advance('),
   );
   assert.match(fn, /observe\(/, 'the opponent must go through observe()');
-  assert.match(fn, /result\.observed\.own/, 'and act on its own observed units');
+  assert.match(fn, /decide\(\s*result\.observed/, 'and decide from that observation');
   assert.doesNotMatch(
     fn,
-    /state\.units\.filter/,
+    /state\.units/,
     'the opponent must not read the ground-truth roster',
   );
+});
+
+test('the post-battle screen explains the AI from recorded decisions', () => {
+  // Section 35: an explanation must reflect the decision data, not be composed
+  // afterwards. explainDecisions() reads the log; nothing else may narrate.
+  assert.match(mainSrc, /explainDecisions\(enemyAI/);
 });
 
 test('the battle log shown to the player is the filtered one', () => {

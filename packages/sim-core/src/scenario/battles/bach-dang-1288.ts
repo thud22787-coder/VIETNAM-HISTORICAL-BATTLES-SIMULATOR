@@ -427,7 +427,26 @@ export const BACH_DANG_1288: BattleScenario = {
       id: 'yuan-break-out',
       faction: YUAN,
       description: 'Break out to sea with the fleet intact',
-      condition: { kind: 'ATTRITION', targetFaction: DAI_VIET, strengthFractionBelow: 0.35 },
+      // This was previously an ATTRITION condition against Dai Viet, which
+      // contradicted its own description: it said "break out" but rewarded
+      // grinding the defenders down. An AI commander reading the scenario
+      // honestly did exactly that -- charged the defenders and won without ever
+      // approaching the obstructions. The mechanics now match the words.
+      //
+      // The threshold is dictated by the physics, not chosen for feel.
+      //
+      // Five of the eight vessels draw 1.5m and need 2.7m of water over the
+      // obstructions. They need ~1.35h to reach the stake line and the channel
+      // closes to them at ~1.35h, so the heavy squadrons sit on a knife edge.
+      // The three shallow-draft junks (38% of the fleet) can always get out.
+      //
+      // 0.5 therefore has to mean "at least some of the heavy squadrons got
+      // through", which is the only reading under which "break out with the
+      // fleet intact" is true. Setting it at or below 0.38 would hand the Yuan
+      // a victory for saving nothing but the light escorts while the entire
+      // battle fleet lay wrecked on the stakes -- which is precisely the
+      // outcome history records as a catastrophic defeat.
+      condition: { kind: 'ESCAPE', beyondX: 600, direction: 'BELOW', fractionEscaped: 0.5 },
     },
   ],
 

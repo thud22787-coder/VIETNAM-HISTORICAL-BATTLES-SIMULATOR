@@ -1,11 +1,11 @@
 /**
  * Game shell.
  *
- * The player commands Đại Việt; the Yuan fleet is run by a simple scripted
- * opponent until the AI commander exists (roadmap Phase 8).
+ * The player commands Đại Việt; the Yuan fleet is run by the AI commander.
  *
  * This layer only renders state and sends commands. All rules live in
- * @vhbs/sim-core.
+ * @vhbs/sim-core — including the AI, which is a simulation concern rather than
+ * a UI one and must remain testable without a browser.
  */
 
 import {
@@ -23,6 +23,10 @@ import {
   emptyMemory,
   estimateOf,
   createRng,
+  decide,
+  initialAiState,
+  explainDecisions,
+  type AiState,
   MINUTES_PER_TICK,
   type BattleState,
   type Command,
@@ -62,6 +66,9 @@ const standingOrders = new Map<UnitId, Command>();
  */
 let playerMemory: SightingMemory = emptyMemory();
 let enemyMemory: SightingMemory = emptyMemory();
+
+/** The opposing commander's accumulated reasoning. */
+let enemyAI: AiState = initialAiState();
 
 /** The player's current view. Everything the UI renders comes from this. */
 let playerView: ObservedState = observePlayer();
@@ -108,20 +115,16 @@ function resize(): void {
 window.addEventListener('resize', resize);
 
 /* ------------------------------------------------------------------ */
-/* Opponent (scripted placeholder — see roadmap Phase 8)               */
+/* Opponent — the AI commander                                         */
 /* ------------------------------------------------------------------ */
 
 /**
- * The Yuan fleet makes for open water.
+ * The Yuan fleet, run by the AI commander.
  *
- * This is NOT the AI commander from §31-35 — it is a deliberately simple
- * stand-in so the battle is playable. But it now reads its OWN observed view
- * rather than ground truth, which matters more than the sophistication of its
- * decisions: it does not know where the stake field is, so it sails into the
- * trap for the same reason the historical fleet did.
- *
- * When the real AI commander lands (roadmap Phase 8), it replaces this and
- * inherits the same constraint by construction.
+ * It is handed its own `ObservedState` and nothing else, so it does not know
+ * where the stake field is. It sails into the obstructions for the same reason
+ * the historical fleet did — the route to the sea runs through them — and only
+ * learns the water is dangerous by watching its own ships stop dead in it.
  */
 function enemyCommands(): Command[] {
   const result = observe(
@@ -133,9 +136,14 @@ function enemyCommands(): Command[] {
   );
   enemyMemory = result.memory;
 
-  return result.observed.own
-    .filter((u) => canAct(u))
-    .map((u) => ({ kind: 'MOVE' as const, unitId: u.id, to: { x: 150, y: u.position.y } }));
+  const decision = decide(
+    result.observed,
+    scenario,
+    enemyAI,
+    createRng(`enemy-ai-${state.seed}-${state.tick}`),
+  );
+  enemyAI = decision.state;
+  return [...decision.commands];
 }
 
 /* ------------------------------------------------------------------ */
@@ -325,6 +333,16 @@ function showResult(): void {
     <h3>Compared with history</h3>
     <p>${comparison.summary}</p>
 
+    <h3>What the opposing commander was thinking</h3>
+    <p class="dim" style="font-size:12px">
+      Taken from the decisions actually recorded during the battle, with the
+      observations each was based on. The Yuan commander could not see the
+      obstructions — it inferred them from its own ships stopping.
+    </p>
+    <ul class="ai-log">
+      ${explainDecisions(enemyAI, 14).map((l) => `<li>${l}</li>`).join('')}
+    </ul>
+
     <h3>What this simulation assumes</h3>
     <ul class="assumptions">
       ${scenario.gameplayAssumptions.map((a) => `<li>${a}</li>`).join('')}
@@ -398,6 +416,7 @@ $('restartBtn').addEventListener('click', () => {
   standingOrders.clear();
   playerMemory = emptyMemory();
   enemyMemory = emptyMemory();
+  enemyAI = initialAiState();
   playerView = observePlayer();
   running = false;
   $('resultOverlay').style.display = 'none';

@@ -36,5 +36,8 @@ export * from './sim/replay.ts';
 export * from './state/validator.ts';
 export * from './state/observed.ts';
 
+/* AI */
+export * from './ai/commander.ts';
+
 /* Analysis */
 export * from './analysis/analyse.ts';

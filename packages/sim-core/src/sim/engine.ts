@@ -36,7 +36,7 @@ import { createRng, restoreRng, type Rng } from './rng.ts';
  * that alters results (§53). Replays record it and refuse to run against a
  * different one (INV-18).
  */
-export const SIMULATION_VERSION = '0.2.0';
+export const SIMULATION_VERSION = '0.3.0';
 
 /** In-world minutes advanced per tick. */
 export const MINUTES_PER_TICK = 5;
@@ -477,6 +477,27 @@ export function evaluateVictory(
           kind: 'DECIDED',
           victor: objective.faction,
           reason: `${objective.description} (${neutralised}/${fleet.length} vessels neutralised)`,
+        };
+      }
+    }
+
+    if (cond.kind === 'ESCAPE') {
+      const force = scenario.initialUnits.filter((u) => u.faction === objective.faction);
+      if (force.length === 0) continue;
+
+      const escaped = force.filter((iu) => {
+        const now = units.find((u) => u.id === iu.id);
+        if (!now || !canAct(now) || now.status === 'IMMOBILISED') return false;
+        return cond.direction === 'BELOW'
+          ? now.position.x <= cond.beyondX
+          : now.position.x >= cond.beyondX;
+      }).length;
+
+      if (escaped / force.length >= cond.fractionEscaped) {
+        return {
+          kind: 'DECIDED',
+          victor: objective.faction,
+          reason: `${objective.description} (${escaped}/${force.length} units reached open water)`,
         };
       }
     }
