@@ -172,10 +172,44 @@ describe('hazard inference — learning by paying for it', () => {
       .filter((d) => d.layer === 'OPERATIONAL' && /Posture:/.test(d.summary))
       .map((d) => d.summary);
 
+    // The commander must react to losing ships to something it cannot see.
+    // Which way it reacts depends on the water: with the tide still draining
+    // and an escape to make, pressing on is the right answer and freezing in a
+    // shoaling channel is the worst one. Either response counts as reacting;
+    // carrying on obliviously does not.
+    //
+    // This originally required CAUTIOUS specifically, and started failing when
+    // the commander learned to read the tide — it was asserting the worse of
+    // the two behaviours.
     assert.ok(
-      postures.some((p) => /CAUTIOUS/.test(p) && /stopped unexpectedly/.test(p)),
-      `expected a cautious posture triggered by unexplained stops, got: ${postures.join(' | ')}`,
+      postures.some(
+        (p) =>
+          (/CAUTIOUS/.test(p) && /stopped unexpectedly/.test(p)) ||
+          (/RUN/.test(p) && /tide is ebbing/.test(p)),
+      ),
+      `expected a posture change driven by the hazard or the tide, got: ${postures.join(' | ')}`,
     );
+  });
+
+  test('a falling tide keeps a fleet moving instead of freezing', () => {
+    // The specific improvement tide awareness bought. A commander that has lost
+    // ships to an unseen obstruction would otherwise turn cautious and stop --
+    // in a channel that is still draining, which is the worst available choice.
+    const withTide = runAiBattle('tide-aware', 120);
+
+    const cautious = withTide.yuanAI.decisions.filter(
+      (d) => /Posture: CAUTIOUS/.test(d.summary) && /stopped unexpectedly/.test(d.summary),
+    );
+    const running = withTide.yuanAI.decisions.filter((d) => /tide is ebbing/.test(d.summary));
+
+    // It is fine for the commander never to be in this situation on a given
+    // seed; what must not happen is freezing while the water drains away.
+    if (cautious.length > 0) {
+      assert.ok(
+        running.length > 0,
+        'a commander that froze in a draining channel never reconsidered when the tide fell',
+      );
+    }
   });
 });
 

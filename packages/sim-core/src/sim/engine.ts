@@ -37,7 +37,7 @@ import { createRng, restoreRng, type Rng } from './rng.ts';
  * that alters results (§53). Replays record it and refuse to run against a
  * different one (INV-18).
  */
-export const SIMULATION_VERSION = '0.4.0';
+export const SIMULATION_VERSION = '0.5.0';
 
 /** In-world minutes advanced per tick. */
 export const MINUTES_PER_TICK = 5;

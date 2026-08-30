@@ -40,6 +40,7 @@ import {
 import type { BattleScenario, ObstacleField, TerrainKind } from '../scenario/scenario.ts';
 import { terrainAtPosition } from '../scenario/scenario.ts';
 import type { Rng } from '../sim/rng.ts';
+import { evaluateTide, type TideState } from '../sim/tide.ts';
 
 /* ------------------------------------------------------------------ */
 /* Knowledge levels (§17)                                              */
@@ -124,6 +125,20 @@ export interface ObservedState {
 
   /** Obstacle fields this side placed, and therefore knows about. */
   readonly knownObstacles: readonly ObstacleField[];
+
+  /**
+   * The state of the tide, when the scenario has one.
+   *
+   * Unlike enemy strength, this is **not** privileged information. Anyone on
+   * the water can see the water: whether it is rising or falling, and roughly
+   * how far it has dropped from the marks on the bank. A 13th-century sailor
+   * would have read it better than we can model it, and withholding it would
+   * make the AI stupid in a way no real commander was.
+   *
+   * What it does NOT tell you is what lies *under* the water. That is the
+   * honest boundary: the tide is observable, the stake field is not.
+   */
+  readonly tide: TideState | null;
 
   /** Events this side could plausibly have witnessed. */
   readonly events: readonly BattleEvent[];
@@ -340,6 +355,7 @@ export function observe(
         own,
         enemies,
         knownObstacles: scenario.mechanics.obstacleFields ?? [],
+        tide: observedTide(state, scenario),
         events: state.events,
         outcome: state.outcome,
       },
@@ -423,11 +439,20 @@ export function observe(
       own,
       enemies,
       knownObstacles,
+      // Visible to both sides even under fog: see the field's doc comment.
+      tide: observedTide(state, scenario),
       events,
       outcome: state.outcome,
     },
     memory,
   };
+}
+
+/** The tide as anyone on the water would see it, or null if there is none. */
+function observedTide(state: BattleState, scenario: BattleScenario): TideState | null {
+  return scenario.mechanics.tide
+    ? evaluateTide(scenario.mechanics.tide, state.elapsedHours)
+    : null;
 }
 
 /**

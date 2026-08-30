@@ -7,11 +7,104 @@ Most recent session first.
 
 ---
 
+## SESSION 7 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-12 complete plus AI tide awareness. Campaign or a third battle next.
+
+### WHAT WAS DONE
+
+Closed the last standing item in AI_COMMANDER_CONTRACT §6: the commander now reads the tide.
+
+`ObservedState` gained a `tide` field, populated for both sides even under fog. That is not a
+cheat — anyone on the water can see the water. The honest boundary is that **the tide is
+observable and what lies under it is not**: the commander knows the water is leaving, and still
+does not know what it is leaving the hull on.
+
+The behavioural change is small and correct: a fleet that has lost ships to an unseen obstruction
+used to turn CAUTIOUS and *stop*, in a channel that was still draining. It now keeps running for
+open water. Measured: 9 cautious ticks became 0.
+
+### THE PART WORTH READING
+
+**Three attempts at this made no measurable difference, and the reason was not in the AI.**
+
+An A/B test (tide visible vs. blinded) showed byte-identical outcomes across eight seeds. Rather
+than tuning harder, I measured why — and found the **scenario was mistimed**:
+
+- High water sat at hour −1.5, closing the channel to deep hulls at **1.03h**
+- The heavy squadrons could not physically reach the obstructions before **1.35h**, even sailing
+  flat out from tick zero
+
+Their loss was *predetermined*, not decided. No tide awareness can help a commander who never had
+a choice, and the "escape window" the tests claimed to protect did not exist for the ships it
+mattered for.
+
+Retimed to −0.8: the channel now closes at ~1.8h against a 1.62h transit. Sailing at once gets
+**3 heavy squadrons + 3 junks** out; waiting two hours loses **every deep-draft hull**. That
+half-hour margin is the decision the battle was always supposed to be about.
+
+**The lesson: an A/B test showing no difference is evidence about the world, not a reason to keep
+tuning.** Two of my three thresholds were also wrong on their own terms — they compared water
+level against a hull plus a flat margin and fired only after the fleet had already grounded. What
+strands a ship is shallow water *over an obstruction*, so once the commander has learned where one
+is, that is what the margin is measured against.
+
+### TESTS THAT ASSERTED THE WORSE BEHAVIOUR
+
+Two failed after the fix and both were the test's fault, not the code's:
+
+- `discovering a hazard changes the posture` demanded CAUTIOUS specifically. Freezing in a
+  draining channel is the *worse* of the two available responses; it now accepts either reaction.
+- `the escape window is real` asserted a delayed fleet escapes with **nobody**. That was only true
+  because of the mistiming. It now asserts the real gradient, and measures **which** ships get out
+  rather than how many — shallow-draft junks clear at almost any tide, so a hull count hides the
+  actual decision.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **263 tests passing** across four packages, **zero skipped**
+- `SIMULATION_VERSION` 0.4.0 → 0.5.0 with the golden fingerprint regenerated in the same commit,
+  per the documented process
+- The Android test correctly caught a **stale APK** twice during this session — once after the
+  input work, once after the simulation change. Rebuilt both times.
+- Browser determinism re-verified against the new golden
+
+### BRANCH
+
+`feature/ai-tide`, branched from `main`.
+
+### KNOWN RISKS
+
+- **Still no physical Android device.**
+- The AI has no model of the opponent and no formation tactics (AI_COMMANDER_CONTRACT §6).
+- TD-07: nothing drives input all the way into the simulation.
+- Performance is unprofiled; both battles are 14 units.
+
+### NEXT STEPS
+
+1. **A third battle, or the campaign system** (Phase 13). ADR-008 sets the expectation: mostly
+   data, plus whatever general capability its mechanic needs.
+2. A physical device pass, if hardware becomes available.
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **The tide is observable to both sides; obstacles are not.** That is the line that keeps the AI
+  honest. `ObservedState.tide` is populated for everyone; `knownObstacles` is filtered.
+- **Bạch Đằng's `highWaterAtHour` is load-bearing arithmetic, not feel.** A heavy hull needs 1.62h
+  to clear the stake field; the channel must stay open slightly longer than that or the battle
+  stops being a decision. The scenario comment shows the working.
+
+---
+
 ## SESSION 6 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-12 complete. Touch input done; campaign or a third battle is next.
+**PHASE AT THE TIME:** Phases 0-12 complete. Touch input done.
 
 ### WHAT WAS DONE
 

@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/touch-input`)
+**Last verified commit:** see `git log` (branch `feature/ai-tide`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -23,7 +23,7 @@ system, or a third battle. See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (262 tests across four packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (263 tests across four packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -80,6 +80,11 @@ Verified by `npm test` (262 tests across four packages, all passing) and `npm ru
   asserts the game actually renders.
 - **Android shell (Capacitor)** — native project generates; packages the *same* `game-ui/dist`
   bytes the desktop shell loads, so all targets ship identical application code.
+- **AI tide awareness** — the commander reads the tide from `ObservedState` (legitimate: anyone
+  on the water can see the water) and no longer freezes in a draining channel. Closing this gap
+  exposed that the Bạch Đằng tide was mistimed so badly the heavy squadrons could not reach the
+  obstructions before the channel shut, even sailing flat out — their loss was predetermined
+  rather than decided. Retimed; the timing decision is now real.
 - **Touch and mouse input** — one Pointer Events code path for both. The interaction model was
   redesigned rather than patched: tapping empty ground orders a move (the only way to order by
   touch, so it is the primary path everywhere), drag box-selects, long-press toggles selection.
@@ -134,7 +139,7 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   216 tests — all passing
+sim-core   217 tests — all passing
 game-ui     42 tests — all passing   (gestures, browser determinism, real layout geometry)
 desktop      2 tests — all passing   (launches the real Electron shell)
 android      2 tests — all passing   (APK is valid and ships identical bytes)
@@ -181,10 +186,6 @@ In dependency order:
 
 1. **A third battle, or the campaign system** (Phase 13). ADR-008 sets the honest expectation for
    a battle: mostly data, plus whatever general capability its mechanic needs.
-2. **AI tide awareness** — the Yuan commander does not understand that waiting makes its position
-   worse, which a competent sailor would have known. See AI_COMMANDER_CONTRACT §6.
-3. **A third battle**, if more content is wanted. ADR-008 sets the honest expectation: mostly
-   data, plus whatever general capability its mechanic needs.
 
 ## DO NOT BREAK
 
