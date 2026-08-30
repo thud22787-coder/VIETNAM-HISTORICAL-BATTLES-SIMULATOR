@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--
+  The app is entirely self-contained: no CDN, no remote fonts, no analytics, no
+  network access of any kind (§49, §78). Saying so explicitly means a future
+  change that quietly adds a remote dependency fails loudly instead of silently
+  working, and it silences Electron's insecure-CSP warning honestly rather than
+  by disabling the check.
+-->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Bạch Đằng 1288 — Vietnam Historical Battles Simulator</title>
 <style>
   :root {

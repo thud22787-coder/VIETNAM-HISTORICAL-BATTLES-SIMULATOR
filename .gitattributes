@@ -1,0 +1,9 @@
+# The determinism golden file is compared byte-for-byte against output produced
+# at runtime, which always uses LF. Letting git rewrite it to CRLF on checkout
+# would break the comparison on Windows for reasons that look like a
+# determinism failure but are not.
+*.golden.txt -text
+
+# Keep shell scripts and the Gradle wrapper LF regardless of platform.
+*.sh text eol=lf
+gradlew text eol=lf

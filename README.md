@@ -5,9 +5,9 @@ A historical battle simulation and strategy platform for Vietnamese history.
 Play a historical battle, command the forces, watch the simulation resolve, see why it turned
 out that way — then change a variable and find out what the model does differently.
 
-> **Status: early but playable.** The simulation core, one complete battle and a browser UI work
-> end to end and are tested. No desktop or Android build has been attempted yet.
-> See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for an honest account of what exists.
+> **Status: early but playable.** Two battles, a browser UI, and a desktop app that launches and
+> is tested. The Android project builds; no physical device has been tested, and touch input is
+> not yet designed. See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for an honest account.
 
 ---
 
@@ -53,10 +53,11 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 224 tests
+npm test          # 231 tests
 npm run typecheck
 
-npm run dev -w @vhbs/game-ui   # play it at http://localhost:5173
+npm run dev   -w @vhbs/game-ui   # play in a browser at http://localhost:5173
+npm start     -w @vhbs/desktop   # play in the desktop app
 ```
 
 Requires Node 20+ (developed on Node 24). The simulation core runs TypeScript natively with no
@@ -66,6 +67,8 @@ build step.
 
 ```
 packages/game-ui/         browser UI (canvas battlefield, orders, analysis)
+packages/desktop/         Electron shell (thin — opens a window on the UI)
+packages/android/         Capacitor shell (packages the same built UI)
 packages/sim-core/        platform-independent simulation core
   src/history/            epistemic status, uncertain quantities, baseline, what-if
   src/domain/             units, commanders, events, battle state
@@ -95,6 +98,7 @@ Start here if you are picking this project up:
 | [GAME_STATE_INVARIANTS.md](docs/GAME_STATE_INVARIANTS.md) | Rules the state must always satisfy |
 | [AI_COMMANDER_CONTRACT.md](docs/AI_COMMANDER_CONTRACT.md) | What the AI may and may not know |
 | [ADR-008](docs/DECISIONS/ADR-008-extensibility-verdict.md) | What the second battle cost |
+| [BUILD.md](docs/BUILD.md) | How to build each target, and what is verified |
 | [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | What is tested and why |
 | [ROADMAP.md](docs/ROADMAP.md) | Where this goes next |
 | [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md) | Bugs, limitations and technical debt |

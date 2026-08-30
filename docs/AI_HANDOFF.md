@@ -7,11 +7,101 @@ Most recent session first.
 
 ---
 
+## SESSION 5 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-11 complete. Desktop and Android both build. Touch input is next.
+
+### WHAT WAS DONE
+
+Built the platform shells and, more importantly, **verified the two claims that had been carried
+as assumptions since Session 1**: that desktop and Android would agree bit-for-bit, and that the
+app could actually be packaged at all.
+
+- `src/testing/fingerprint.ts` — a pure fingerprint of the simulation: 32 RNG draws at 17 decimal
+  places, forked stream states, and both battles' complete end state at nine decimal places.
+- Two tests compare it against one golden file: one under Node, one in **headless Chromium** after
+  a real Vite build. Byte-identical. Chromium is what Android WebView runs, so this is the closest
+  check available without a handset.
+- `packages/desktop` — Electron shell, deliberately thin. A test launches the real shell and
+  asserts the game renders.
+- `packages/android` — Capacitor project. **A 3.6 MB debug APK was built** (BUILD SUCCESSFUL,
+  82 Gradle tasks), and a test asserts the bundle inside it is byte-identical to the desktop one.
+
+See [ADR-009](DECISIONS/ADR-009-platform-shells.md) and [BUILD.md](BUILD.md).
+
+### THE BUG THIS PHASE EXISTED TO CATCH
+
+**Vite defaults to absolute asset paths** (`/assets/index-xxx.js`). Under `file://` — which is how
+both platform shells load the app — that resolves to the filesystem root, so the bundle never
+loads and the page renders as an empty shell.
+
+Every browser test passed straight through it, because a dev server serves absolute paths happily.
+Only launching the desktop app revealed it. Fixed with `base: './'`, and now guarded twice: a fast
+assertion that the built HTML contains no absolute paths, and the Electron launch test that would
+catch any other cause of the same symptom. Both were checked against a deliberately reintroduced
+regression.
+
+A second finding: the app had no Content Security Policy. It now declares one matching what it
+actually does (`default-src 'none'`, no `connect-src` at all), so an accidental network dependency
+would fail loudly instead of working silently.
+
+### A TRAP WORTH KNOWING ABOUT
+
+`ELECTRON_RUN_AS_NODE=1` is set in this environment — Claude Code is itself an Electron app. With
+it set, the Electron binary runs your script as **plain Node** and silently never starts the app,
+producing a baffling `Cannot read properties of undefined (reading 'whenReady')`. The desktop test
+unsets it. If Electron ever behaves as though it is not Electron, check that variable first.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **233 tests passing** across four packages, **zero skipped**
+- `npm run typecheck` → clean; `vite build` → clean
+- Determinism: byte-identical between Node and headless Chromium
+- Desktop: the real Electron shell launches, renders the briefing, lists both battles, sizes the
+  canvas, and logs no console errors
+- Android: 3.6 MB APK with valid manifest and dex; its bundle SHA-256 matches the desktop bundle
+
+### BRANCH
+
+`feature/productisation`, branched from `main`.
+
+### KNOWN RISKS
+
+- **No physical Android device has been tested.** The engine is the same Chromium the determinism
+  test exercises, but device behaviour, performance and touch are untested on real hardware.
+- **Touch input is not designed** (§77). The UI is mouse-oriented; a shrunken desktop layout is
+  explicitly not acceptable, so this is real design work.
+- The packaged desktop installer (`npm run dist`) has config written but has **not been run**.
+- The AI still does not read the tide (AI_COMMANDER_CONTRACT §6).
+- Performance is unprofiled; both battles are 14 units.
+
+### NEXT STEPS
+
+1. **Touch input and mobile UX** (Phase 12). The simulation needs no changes — it already accepts
+   commands from any source.
+2. **AI tide awareness**.
+3. A third battle, if more content is wanted.
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **The built UI must use relative asset paths.** Absolute paths break both platform shells and
+  the app renders blank. Two tests guard it.
+- **Regenerate `fingerprint.golden.txt` alongside any `SIMULATION_VERSION` bump**, in the same
+  commit, so the diff shows which numbers moved.
+- **Platform shells stay thin.** No game logic in Electron or Capacitor; if a shell seems to need
+  it, it belongs in `sim-core`.
+
+---
+
 ## SESSION 4 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-10 complete. Two battles, terrain effects. Builds are next.
+**PHASE AT THE TIME:** Phases 0-10 complete. Two battles, terrain effects.
 
 ### WHAT WAS DONE
 

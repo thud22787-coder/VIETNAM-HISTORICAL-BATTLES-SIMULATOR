@@ -1,0 +1,11 @@
+{
+  "appId": "vn.vhbs.simulator",
+  "appName": "Vietnam Historical Battles",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
