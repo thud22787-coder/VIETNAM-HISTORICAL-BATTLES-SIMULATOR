@@ -34,6 +34,7 @@ export * from './sim/replay.ts';
 
 /* State */
 export * from './state/validator.ts';
+export * from './state/observed.ts';
 
 /* Analysis */
 export * from './analysis/analyse.ts';

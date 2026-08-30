@@ -56,10 +56,17 @@ Each invariant has an ID. Validator problems carry that ID so a failure points s
 
 ## E. Information model
 
+Enforced by `state/observed.ts`; `assertNoLeaks()` is the executable form, and is asserted at
+every tick of a real battle in `tests/observed.test.ts`.
+
 | ID | Invariant |
 |----|-----------|
 | **INV-23** | A side's observed view never contains knowledge it has no legitimate source for. The AI reads its own view, never ground truth, when fog of war is on (§32, §34). |
 | **INV-24** | Observed enemy strength is an estimate carrying its own uncertainty, not a copy of the true number (§17). |
+
+Note on INV-23: an enemy that has never been seen is **absent** from the observed state rather
+than present as an `UNKNOWN` placeholder. Knowing that an unseen enemy exists is itself
+information the observer has not earned.
 
 ---
 

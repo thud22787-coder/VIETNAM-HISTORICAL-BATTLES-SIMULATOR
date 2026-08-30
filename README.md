@@ -43,7 +43,7 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 140 tests
+npm test          # 171 tests
 npm run typecheck
 
 npm run dev -w @vhbs/game-ui   # play it at http://localhost:5173

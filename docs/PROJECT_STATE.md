@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/ui`)
+**Last verified commit:** see `git log` (branch `feature/fog-of-war`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,12 +18,12 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-6 complete (foundation through a playable UI). Next is fog of war, then the AI
-commander. See [ROADMAP.md](ROADMAP.md).
+Phases 0-7 complete (foundation through fog of war). Next is the AI commander.
+See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (140 tests across both packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (171 tests across both packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -54,6 +54,12 @@ Verified by `npm test` (140 tests across both packages, all passing) and `npm ru
 - **Battle analysis** — findings labelled OBSERVED / INFERRED / SPECULATIVE, counts derived from
   the event log and asserted to match it.
 - **Bạch Đằng 1288 scenario** — the vertical slice, with honest epistemic labelling throughout.
+- **Fog of war** — observed-state projection per faction (`state/observed.ts`). Terrain-modified
+  sighting range, strength as a bracketed estimate that tightens with proximity, sighting memory
+  that goes stale and expires, obstacles known only to the side that placed them, event filtering
+  by witnessability. Enforces INV-23/INV-24; `assertNoLeaks` is checked at every tick of a real
+  battle. Observed types are structurally distinct from domain types, so consuming ground truth
+  is a type error rather than a silent cheat.
 - **Playable browser UI** — canvas battlefield with tide-aware terrain shading, unit selection
   and move orders, play/pause/speed, live tide and "channel closes in…" countdown, battle log,
   and a post-battle screen showing findings with their OBSERVED / INFERRED / SPECULATIVE labels
@@ -66,11 +72,10 @@ Nothing is half-finished. The tree is clean and all tests pass.
 ## NOT STARTED
 
 - **AI commander** (§31-35). The Yuan fleet is run by a deliberately simple scripted opponent in
-  the UI (`enemyCommands` in `main.ts`), which reads full state. A real AI commander must read
-  only observed state — so fog of war has to come first.
-- **Fog of war / information model.** `mechanics.fogOfWar` is declared in the Bạch Đằng scenario
-  and *validated*, but **no code reads it**. INV-23 and INV-24 are specified and unenforced. This
-  is the most important documentation-vs-reality gap in the project.
+  the UI (`enemyCommands` in `main.ts`). It already reads only its own observed view, so the
+  constraint is in place; what is missing is any actual strategy or tactical reasoning.
+- **Messenger delay and misinformation** (§18). The architecture allows them — sighting memory is
+  per-commander and timestamped — but neither is modelled.
 - **Terrain effects on movement and combat.** Terrain is modelled in the scenario and used for
   obstacle placement, but does not yet modify movement speed, visibility or defence.
 - **Second battle.** The architecture claims adding one is data + config (§72). That claim is
@@ -105,10 +110,10 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   138 tests — all passing
-game-ui      2 tests — all passing
+sim-core   164 tests — all passing
+game-ui      7 tests — all passing
 tsc --noEmit — clean in both packages
-vite build  — clean (35 KB bundle)
+vite build  — clean (40 KB bundle)
 ```
 
 Covered: epistemic model, RNG determinism, tide physics, invariants, baseline immutability,
@@ -119,7 +124,11 @@ Bạch Đằng historical regression checks.
 The UI smoke test boots the real shell against a fake DOM, which catches the failure class
 typechecking cannot see: an element id referenced in code but missing from the HTML.
 
-Not covered: AI, fog of war, actual pixel rendering, and performance at scale.
+Fog of war is covered by a leak scan across a full battle, plus adversarial checks: the UI guards
+were verified by planting a real ground-truth leak into the render input and confirming they
+failed.
+
+Not covered: AI strategy, actual pixel rendering, and performance at scale.
 
 ## CURRENT BUILD STATUS
 
@@ -135,11 +144,10 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **Fog of war**, to close GAP-01. Either implement it or remove the flag — a declared-but-
-   ignored mechanic is a lie in the data. Must land before the AI commander.
-2. **AI commander** reading only observed state, replacing the scripted opponent.
-3. **A second battle**, to test the extensibility claim in §72 before more is built on it.
-4. **Terrain effects** (GAP-02), so the marsh and tidal flats stop being decorative.
+1. **AI commander** (Phase 8), replacing the scripted opponent. Fog of war now makes this honest
+   by construction — the AI is handed an `ObservedState` with no route back to ground truth.
+2. **A second battle**, to test the extensibility claim in §72 before more is built on it.
+3. **Terrain effects** (GAP-02), so the marsh and tidal flats stop being decorative.
 
 ## DO NOT BREAK
 
@@ -155,3 +163,5 @@ In dependency order:
 - **Invariant violations must throw, never self-repair.**
 - **Passive play must not win Bạch Đằng.** The obstacles only hold vessels fast; converting that
   into a result is the player's job. A test asserts this across several seeds.
+- **Nothing may render or decide from ground truth when fog is on.** The UI takes `ObservedState`;
+  tests catch any attempt to widen that back to `BattleState`.
