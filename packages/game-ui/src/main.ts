@@ -10,6 +10,7 @@
 
 import {
   BACH_DANG_1288,
+  CHI_LANG_1427,
   createInitialState,
   step,
   evaluateTide,
@@ -37,11 +38,30 @@ import {
 } from '@vhbs/sim-core';
 import { render, unitAt, type Viewport } from './render.ts';
 
-const scenario = BACH_DANG_1288;
+/**
+ * Available battles.
+ *
+ * Adding one is a matter of listing it here: which side the player commands is
+ * scenario data, not a UI assumption. That the second battle needed no other UI
+ * change is part of the §72 extensibility evidence.
+ */
+const BATTLES = [
+  { scenario: BACH_DANG_1288, player: 'dai-viet', enemy: 'yuan' },
+  { scenario: CHI_LANG_1427, player: 'lam-son', enemy: 'ming' },
+] as const;
+
+/** Chosen from the URL (?battle=CHI_LANG_1427) or the briefing screen. */
+function chooseBattle(): (typeof BATTLES)[number] {
+  const wanted = new URLSearchParams(location.search).get('battle');
+  return BATTLES.find((b) => b.scenario.id === wanted) ?? BATTLES[0];
+}
+
+let battle = chooseBattle();
+let scenario = battle.scenario;
 assertScenarioValid(scenario);
 
-const PLAYER_FACTION = 'dai-viet';
-const ENEMY_FACTION = 'yuan';
+let PLAYER_FACTION = battle.player as string;
+let ENEMY_FACTION = battle.enemy as string;
 
 /* ------------------------------------------------------------------ */
 /* State                                                               */
@@ -85,8 +105,8 @@ function observePlayer(): ObservedState {
   return result.observed;
 }
 
-const mapWidthM = scenario.terrain.widthCells * scenario.terrain.cellSizeM;
-const mapHeightM = scenario.terrain.heightCells * scenario.terrain.cellSizeM;
+let mapWidthM = scenario.terrain.widthCells * scenario.terrain.cellSizeM;
+let mapHeightM = scenario.terrain.heightCells * scenario.terrain.cellSizeM;
 
 /* ------------------------------------------------------------------ */
 /* DOM                                                                 */
@@ -214,7 +234,14 @@ function fmtClock(hours: number): string {
 function updatePanels(tide: ReturnType<typeof currentTide>): void {
   $('clock').textContent = `T+${fmtClock(state.elapsedHours)}`;
 
-  /* Tide readout — the most important number on screen in this battle. */
+  /* Tide readout — present only for scenarios that declare a tide. */
+  if (!tide) {
+    $('tideLevel').textContent = '—';
+    $('tidePhase').textContent = 'no tide';
+    $('trapStatus').textContent = '—';
+    $('trapStatus').className = 'value';
+    $('tideBar').style.height = '0%';
+  }
   if (tide) {
     $('tideLevel').textContent = `${tide.levelM.toFixed(2)} m`;
     $('tidePhase').textContent = tide.phase.replace('_', ' ').toLowerCase();
@@ -254,6 +281,11 @@ function updatePanels(tide: ReturnType<typeof currentTide>): void {
   const own = playerView.own;
   const ownAlive = own.filter(canAct);
   const ownStuck = own.filter((u) => u.status === 'IMMOBILISED').length;
+  $('forceOwnLabel').textContent =
+    scenario.factions.find((f) => f.id === PLAYER_FACTION)?.name ?? PLAYER_FACTION;
+  $('forceEnemyLabel').textContent =
+    scenario.factions.find((f) => f.id === ENEMY_FACTION)?.name ?? ENEMY_FACTION;
+
   $('forceDaiViet').textContent =
     `${ownAlive.length}/${own.length} units · ${Math.round(
       ownAlive.reduce((s, u) => s + u.strength, 0),
@@ -441,6 +473,13 @@ $('briefForces').innerHTML = scenario.historicalForces
       <span class="dim">Recorded strength: ${f.historicalSize.quantity.kind === 'UNKNOWN' ? 'unknown' : 'see sources'} — ${f.historicalSize.note ?? ''}</span></li>`,
   )
   .join('');
+
+$('battleList').innerHTML = BATTLES.map(
+  (b) =>
+    `<li><a href="?battle=${b.scenario.id}"${
+      b.scenario.id === scenario.id ? ' class="current"' : ''
+    }>${b.scenario.title}</a> <span class="dim">— ${b.scenario.period}</span></li>`,
+).join('');
 
 $('startBtn').addEventListener('click', () => {
   $('briefingOverlay').style.display = 'none';

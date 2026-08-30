@@ -38,6 +38,9 @@ globalThis.document = {
   createElement: () => mkEl(),
 };
 globalThis.window = { addEventListener(){}, devicePixelRatio:1 };
+// The shell reads ?battle=... to pick a scenario, so the fake DOM needs a
+// location. Defaulting to no query string exercises the fallback battle.
+globalThis.location = { search: '', href: 'http://localhost/' };
 globalThis.performance = { now: () => rafCalls * 16 };
 globalThis.requestAnimationFrame = (fn) => { if (rafCalls++ < 3) fn(rafCalls*16); };
 

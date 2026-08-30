@@ -158,6 +158,30 @@ export function validateScenario(scenario: BattleScenario): ScenarioProblem[] {
     }
   }
 
+  for (const [kind, effect] of Object.entries(scenario.mechanics.terrainEffects ?? {})) {
+    if (!effect) continue;
+    if (effect.movement <= 0) {
+      err('INVALID_TERRAIN_MOVEMENT', `Terrain effect for ${kind} has non-positive movement.`);
+    }
+    if (effect.combat < 0) {
+      err('INVALID_TERRAIN_COMBAT', `Terrain effect for ${kind} has negative combat multiplier.`);
+    }
+    for (const [unitKind, override] of Object.entries(effect.byUnitKind ?? {})) {
+      if (override.movement !== undefined && override.movement <= 0) {
+        err(
+          'INVALID_TERRAIN_MOVEMENT',
+          `Terrain effect for ${kind}/${unitKind} has non-positive movement.`,
+        );
+      }
+      if (override.combat !== undefined && override.combat < 0) {
+        err(
+          'INVALID_TERRAIN_COMBAT',
+          `Terrain effect for ${kind}/${unitKind} has negative combat multiplier.`,
+        );
+      }
+    }
+  }
+
   for (const field of scenario.mechanics.obstacleFields ?? []) {
     if (!factionIds.has(field.knownToFaction)) {
       err('BROKEN_OBSTACLE_FACTION', `Obstacle field ${field.id} is known to unknown faction ${field.knownToFaction}.`);
