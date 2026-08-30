@@ -130,10 +130,30 @@ adding one later touches the input module and the renderer, not the simulation.
 
 ## Next
 
-### Phase 13 — Campaign system ← **start here**
+### Phase 13 — Campaign system ✅
 
-Battles linked, with results carrying forward. Historical and player-altered campaign lines kept
-distinct (§37).
+Battles linked, with results able to carry forward, and — the part that mattered — historical and
+player-altered lines kept permanently distinct. See
+[CAMPAIGN_CONTRACT.md](CAMPAIGN_CONTRACT.md).
+
+Divergence is one-way and has no reset: a campaign that departs from the record is relabelled
+`WHAT-IF CAMPAIGN` for the rest of its life, because winning a later battle "correctly" does not
+undo the one that was actually lost.
+
+The shipped `RESISTANCE` campaign is deliberately **thematic, not operational** — its two battles
+are 139 years apart, so it carries nothing forward and says so. The carry-forward machinery is
+tested against a synthetic operational campaign instead.
+
+---
+
+## Next
+
+### Phase 14 — A third battle, or an operational campaign ← **start here**
+
+An operational campaign (the engagements of a single Lam Sơn year, say) would exercise
+carry-forward against real history rather than a synthetic fixture. A third battle would add
+content; ADR-008 sets the expectation — mostly data, plus whatever general capability its mechanic
+needs.
 
 ---
 

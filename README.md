@@ -53,7 +53,7 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 263 tests
+npm test          # 294 tests
 npm run typecheck
 
 npm run dev   -w @vhbs/game-ui   # play in a browser at http://localhost:5173
@@ -76,6 +76,7 @@ packages/sim-core/        platform-independent simulation core
   src/sim/                RNG, tide, engine, replay
   src/state/              invariant validator
   src/ai/                 AI commander
+  src/campaign/           campaign linking and divergence tracking
   src/analysis/           post-battle analysis
 docs/                     contracts, decisions, project state
 ```
@@ -97,6 +98,7 @@ Start here if you are picking this project up:
 | [HISTORICAL_SOURCES.md](docs/HISTORICAL_SOURCES.md) | Source register and research debts |
 | [GAME_STATE_INVARIANTS.md](docs/GAME_STATE_INVARIANTS.md) | Rules the state must always satisfy |
 | [AI_COMMANDER_CONTRACT.md](docs/AI_COMMANDER_CONTRACT.md) | What the AI may and may not know |
+| [CAMPAIGN_CONTRACT.md](docs/CAMPAIGN_CONTRACT.md) | How campaigns keep history and what-if apart |
 | [ADR-008](docs/DECISIONS/ADR-008-extensibility-verdict.md) | What the second battle cost |
 | [BUILD.md](docs/BUILD.md) | How to build each target, and what is verified |
 | [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | What is tested and why |
