@@ -128,6 +128,25 @@ export interface Objective {
   readonly condition: VictoryCondition;
 }
 
+/**
+ * How a battle ends if no objective is met.
+ *
+ * Every scenario needs one: a simulation that simply stops after N ticks tells
+ * the player nothing, and INV-15 requires victory to be evaluated consistently.
+ * The natural limit here is the mechanic's own window — once the tide has run
+ * out, the situation is settled one way or the other.
+ */
+export interface TimeLimit {
+  /** In-world hours after which the battle is adjudicated. */
+  readonly hours: number;
+  /**
+   * Who prevails if the limit is reached. Usually the defender, who only
+   * needed to deny the objective.
+   */
+  readonly favours: FactionId;
+  readonly reason: string;
+}
+
 /* ------------------------------------------------------------------ */
 /* Historical narrative (§10, §11)                                     */
 /* ------------------------------------------------------------------ */
@@ -199,6 +218,8 @@ export interface BattleScenario {
   readonly terrain: TerrainMap;
   readonly mechanics: ScenarioMechanics;
   readonly objectives: readonly Objective[];
+  /** Adjudication if no objective is met (see TimeLimit). */
+  readonly timeLimit: TimeLimit;
 
   readonly historicalPhases: readonly HistoricalPhase[];
   readonly historicalOutcome: HistoricalOutcome;

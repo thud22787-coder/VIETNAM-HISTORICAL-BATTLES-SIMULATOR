@@ -410,6 +410,16 @@ export const BACH_DANG_1288: BattleScenario = {
     },
   ],
 
+  // Once the water is gone the situation is settled: any vessel still caught
+  // above the obstructions is not getting out, and the Yuan attempt to break
+  // through has failed. Six hours is a little past the point where deep-draft
+  // ships lose all clearance.
+  timeLimit: {
+    hours: 6,
+    favours: DAI_VIET,
+    reason: 'The tide ran out with the Yuan fleet still in the estuary',
+  },
+
   historicalPhases: [
     {
       id: 'phase-preparation',

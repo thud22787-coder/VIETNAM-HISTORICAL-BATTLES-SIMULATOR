@@ -126,6 +126,16 @@ export function validateScenario(scenario: BattleScenario): ScenarioProblem[] {
     }
   }
 
+  if (!factionIds.has(scenario.timeLimit.favours)) {
+    err(
+      'BROKEN_TIMELIMIT_FACTION',
+      `Time limit favours unknown faction ${scenario.timeLimit.favours}.`,
+    );
+  }
+  if (scenario.timeLimit.hours <= 0) {
+    err('INVALID_TIMELIMIT', 'Time limit hours must be positive.');
+  }
+
   /* --- Mechanics --- */
 
   const tide = scenario.mechanics.tide;

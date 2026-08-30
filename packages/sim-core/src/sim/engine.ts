@@ -434,6 +434,17 @@ export function evaluateVictory(
     }
   }
 
+  // No objective met. Adjudicate on the scenario's own time limit rather than
+  // leaving the battle hanging: an unresolved simulation tells the player
+  // nothing, and INV-15 requires victory to be evaluated consistently.
+  const limit = scenario.timeLimit;
+  if (elapsedHours >= limit.hours) {
+    if (factionStrength(units, limit.favours) > 0) {
+      return { kind: 'DECIDED', victor: limit.favours, reason: limit.reason };
+    }
+    return { kind: 'DRAW', reason: `${limit.reason} (but no force remained to claim it)` };
+  }
+
   return { kind: 'ONGOING' };
 }
 

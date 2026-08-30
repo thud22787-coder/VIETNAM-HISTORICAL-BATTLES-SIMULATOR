@@ -194,6 +194,30 @@ describe('the tide is the decisive variable (ADR-007)', () => {
   });
 });
 
+describe('every battle reaches a conclusion (INV-15)', () => {
+  test('the time limit adjudicates a stalemate rather than hanging', () => {
+    // A simulation that simply stops tells the player nothing. Once the tide
+    // has run out the situation is settled, so the scenario adjudicates.
+    const s = runWithDeparture(6);
+    assert.notEqual(s.outcome.kind, 'ONGOING', 'the battle must resolve');
+  });
+
+  test('a fleet that never moves loses when the water runs out', () => {
+    // departTick beyond the run length means the Yuan fleet never sails.
+    const s = runWithDeparture(9999);
+    assert.equal(s.outcome.kind, 'DECIDED');
+    if (s.outcome.kind === 'DECIDED') {
+      assert.equal(s.outcome.victor, DAI_VIET);
+      assert.match(s.outcome.reason, /tide ran out/i);
+    }
+  });
+
+  test('the time limit is reached within the simulated window', () => {
+    const s = runWithDeparture(9999);
+    assert.ok(s.elapsedHours >= BACH_DANG_1288.timeLimit.hours);
+  });
+});
+
 describe('determinism of the slice', () => {
   test('the same departure plan reproduces exactly', () => {
     const a = runWithDeparture(6, 'fixed');
