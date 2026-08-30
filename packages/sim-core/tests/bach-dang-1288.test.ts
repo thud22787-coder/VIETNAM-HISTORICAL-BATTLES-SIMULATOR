@@ -109,8 +109,19 @@ describe('historical honesty (§4, §43, §87)', () => {
 /* The tide mechanic must actually decide the battle                   */
 /* ------------------------------------------------------------------ */
 
-/** Yuan fleet runs for open water starting at `departTick`. */
-function runWithDeparture(departTick: number, seed = 'regression'): BattleState {
+/**
+ * Yuan fleet runs for open water starting at `departTick`.
+ *
+ * `playerActive` decides whether Dai Viet converts the trap. This matters: the
+ * obstacles only hold vessels fast, and finishing them is the player's job, so
+ * a passive defender now loses. Tests about the tide use the passive form;
+ * tests about the outcome use the active one.
+ */
+function runWithDeparture(
+  departTick: number,
+  seed = 'regression',
+  playerActive = false,
+): BattleState {
   let s = createInitialState(BACH_DANG_1288, seed);
   for (let i = 0; i < 220 && s.outcome.kind === 'ONGOING'; i++) {
     const commands: Command[] = [];
@@ -118,10 +129,27 @@ function runWithDeparture(departTick: number, seed = 'regression'): BattleState 
       if (u.faction !== YUAN || !canAct(u)) continue;
       commands.push(
         s.tick >= departTick
-          ? { kind: 'MOVE', unitId: u.id, to: { x: 200, y: u.position.y } }
+          ? { kind: 'MOVE', unitId: u.id, to: { x: 150, y: u.position.y } }
           : { kind: 'HOLD', unitId: u.id },
       );
     }
+
+    if (playerActive) {
+      const stuck = s.units.filter((u) => u.faction === YUAN && u.status === 'IMMOBILISED');
+      if (stuck.length > 0) {
+        for (const u of s.units) {
+          if (u.faction !== DAI_VIET || !canAct(u)) continue;
+          const target = stuck.reduce((best, e) =>
+            Math.hypot(e.position.x - u.position.x, e.position.y - u.position.y) <
+            Math.hypot(best.position.x - u.position.x, best.position.y - u.position.y)
+              ? e
+              : best,
+          );
+          commands.push({ kind: 'MOVE', unitId: u.id, to: target.position });
+        }
+      }
+    }
+
     s = step(s, commands, BACH_DANG_1288);
   }
   return s;
@@ -139,13 +167,15 @@ describe('the tide is the decisive variable (ADR-007)', () => {
   test('the obstacle field actually fires — ships strike the stakes', () => {
     // If this ever reaches zero, the scenario has drifted into being decided by
     // melee alone and the whole premise of the vertical slice is broken.
-    assert.ok(strikeCount(runWithDeparture(6)) > 0, 'no vessel ever struck the obstacle field');
+    assert.ok(strikeCount(runWithDeparture(24)) > 0, 'no vessel ever struck the obstacle field');
   });
 
-  test('departing immediately gets ships out; delaying loses them', () => {
-    // THE central property. The Yuan player's timing decision must matter.
+  test('departing immediately gets ships out; waiting for the ebb does not', () => {
+    // THE central property. The Yuan timing decision must matter, because the
+    // tide is the evidenced part of this battle (S-002) and the troop counts
+    // are not (S-005).
     const early = runWithDeparture(0);
-    const late = runWithDeparture(12);
+    const late = runWithDeparture(24);
 
     assert.ok(
       reachedOpenWater(early) > reachedOpenWater(late),
@@ -154,24 +184,72 @@ describe('the tide is the decisive variable (ADR-007)', () => {
     assert.equal(reachedOpenWater(late), 0, 'a fleet that waits for the ebb should not escape');
   });
 
-  test('a delayed fleet loses the battle outright', () => {
-    const late = runWithDeparture(12);
-    assert.equal(late.outcome.kind, 'DECIDED');
-    if (late.outcome.kind === 'DECIDED') {
-      assert.equal(late.outcome.victor, DAI_VIET);
-    }
+  test('a fleet that lingers is caught by the falling tide', () => {
+    const late = runWithDeparture(24);
+    const caught = late.units.filter(
+      (u) => u.faction === YUAN && (u.status === 'IMMOBILISED' || u.status === 'DESTROYED'),
+    );
+    assert.ok(caught.length > 0, 'the ebb must catch a fleet that delays');
   });
 
-  test('the escape window is tight but real — a few ticks change everything', () => {
-    // Between t+0 and t+6 (30 in-world minutes) the outcome flips. This is the
-    // scenario working as designed; if the window widens to hours or vanishes,
-    // the time geometry has regressed.
+  test('the escape window is real — departure time changes how many get out', () => {
+    // The fleet needs ~1.6h to reach the obstructions; the channel closes to
+    // deep hulls at ~2h. If this window widens to hours or vanishes entirely,
+    // the time geometry has regressed and the battle stops being a decision.
     assert.ok(reachedOpenWater(runWithDeparture(0)) > 0, 'immediate departure must be survivable');
-    assert.equal(reachedOpenWater(runWithDeparture(6)), 0, 'a 30-minute delay must be fatal');
+    assert.equal(reachedOpenWater(runWithDeparture(24)), 0, 'a two-hour delay must be fatal');
+  });
+
+  test('the player must convert the trap — passivity never wins', () => {
+    // The obstacles hold vessels fast; they do not finish them. Closing on the
+    // grounded ships is the player's job, and that is what keeps the player a
+    // participant rather than a spectator.
+    //
+    // Checked across several seeds deliberately. How many vessels the ebb
+    // catches genuinely varies, so a single-seed assertion would be tuning to
+    // luck. What must hold universally is the *direction*: committing forces
+    // always destroys more of the fleet, and a passive defender never wins.
+    const seeds = ['agency', 'ag2', 's1', 's2', 's3', 's4'];
+
+    const destroyed = (s: BattleState): number =>
+      s.units.filter((u) => u.faction === YUAN && u.status === 'DESTROYED').length;
+
+    let activeWins = 0;
+
+    for (const seed of seeds) {
+      const passive = runWithDeparture(6, seed, false);
+      const active = runWithDeparture(6, seed, true);
+
+      assert.ok(
+        destroyed(active) > destroyed(passive),
+        `[${seed}] committing forces must destroy more (active=${destroyed(active)}, passive=${destroyed(passive)})`,
+      );
+
+      assert.equal(passive.outcome.kind, 'DECIDED');
+      if (passive.outcome.kind === 'DECIDED') {
+        assert.notEqual(
+          passive.outcome.victor,
+          DAI_VIET,
+          `[${seed}] a passive defender must not be handed a victory`,
+        );
+      }
+
+      if (active.outcome.kind === 'DECIDED' && active.outcome.victor === DAI_VIET) {
+        activeWins++;
+      }
+    }
+
+    // Skilful play should usually — not always — win. If this ever reaches
+    // every seed, the battle has become deterministic in a way the tide should
+    // not allow; if it reaches none, the player has no agency at all.
+    assert.ok(
+      activeWins >= seeds.length / 2,
+      `active play should win most seeds, won ${activeWins}/${seeds.length}`,
+    );
   });
 
   test('light craft are never trapped by the stakes their own side placed', () => {
-    const s = runWithDeparture(6);
+    const s = runWithDeparture(6, 'regression', true);
     const trappedFriendlies = s.units.filter(
       (u) => u.faction === DAI_VIET && u.status === 'IMMOBILISED',
     );
@@ -195,33 +273,27 @@ describe('the tide is the decisive variable (ADR-007)', () => {
 });
 
 describe('every battle reaches a conclusion (INV-15)', () => {
-  test('the time limit adjudicates a stalemate rather than hanging', () => {
-    // A simulation that simply stops tells the player nothing. Once the tide
-    // has run out the situation is settled, so the scenario adjudicates.
-    const s = runWithDeparture(6);
-    assert.notEqual(s.outcome.kind, 'ONGOING', 'the battle must resolve');
-  });
-
-  test('a fleet that never moves loses when the water runs out', () => {
-    // departTick beyond the run length means the Yuan fleet never sails.
-    const s = runWithDeparture(9999);
-    assert.equal(s.outcome.kind, 'DECIDED');
-    if (s.outcome.kind === 'DECIDED') {
-      assert.equal(s.outcome.victor, DAI_VIET);
-      assert.match(s.outcome.reason, /tide ran out/i);
+  test('the battle always resolves rather than hanging', () => {
+    // A simulation that simply stops tells the player nothing.
+    for (const active of [false, true]) {
+      const s = runWithDeparture(6, 'conclusion', active);
+      assert.notEqual(s.outcome.kind, 'ONGOING', 'the battle must resolve');
     }
   });
 
-  test('the time limit is reached within the simulated window', () => {
+  test('a fleet that never sails is adjudicated at the time limit', () => {
+    // departTick beyond the run length means the Yuan fleet never moves, so no
+    // objective is met and the scenario time limit decides.
     const s = runWithDeparture(9999);
+    assert.equal(s.outcome.kind, 'DECIDED');
     assert.ok(s.elapsedHours >= BACH_DANG_1288.timeLimit.hours);
   });
 });
 
 describe('determinism of the slice', () => {
   test('the same departure plan reproduces exactly', () => {
-    const a = runWithDeparture(6, 'fixed');
-    const b = runWithDeparture(6, 'fixed');
+    const a = runWithDeparture(6, 'fixed', true);
+    const b = runWithDeparture(6, 'fixed', true);
     assert.equal(a.rngState, b.rngState);
     assert.deepEqual(
       a.units.map((u) => [u.id, u.strength, u.status]),

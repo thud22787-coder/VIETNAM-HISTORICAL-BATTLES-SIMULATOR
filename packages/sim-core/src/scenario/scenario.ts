@@ -114,11 +114,19 @@ export type VictoryCondition =
     }
   /** Survive until a given in-world hour. */
   | { readonly kind: 'SURVIVE_UNTIL'; readonly hours: number }
-  /** Destroy or immobilise a fraction of an enemy's waterborne units. */
+  /**
+   * Neutralise a fraction of an enemy's waterborne units.
+   *
+   * `countImmobilised` decides whether a vessel merely held fast counts.
+   * Setting it false means the attacker must actually finish trapped ships
+   * rather than being handed a victory the obstacles won on their own -- which
+   * is the difference between the player being a participant and a spectator.
+   */
   | {
       readonly kind: 'FLEET_NEUTRALISED';
       readonly targetFaction: FactionId;
       readonly fractionNeutralised: number;
+      readonly countImmobilised?: boolean;
     };
 
 export interface Objective {

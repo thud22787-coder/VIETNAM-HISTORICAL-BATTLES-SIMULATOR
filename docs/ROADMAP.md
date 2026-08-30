@@ -29,15 +29,16 @@ labelled OBSERVED / INFERRED / SPECULATIVE.
 
 ---
 
-## Next
+### Phase 6 — Minimal UI ✅
 
-### Phase 6 — Minimal UI ← **start here**
+Canvas battlefield, unit selection and orders, play/pause/speed, a tide gauge with a
+"channel closes in…" countdown, battle log, and a post-battle analysis screen carrying the
+epistemic labels.
 
-**Why first:** the core loop works but nobody can play it. Until a person can watch the tide fall
-and feel the decision, we are guessing about whether the design is any good. A UI will surface
-problems no test can.
+Building it did exactly what was hoped: it exposed that the player had almost no agency, which
+drove the combat-scale, morale, obstacle-placement and objective fixes recorded in the git log.
 
-Scope:
+Delivered:
 - battlefield render (canvas): terrain, units, obstacle field (only where the player should know
   it), tide indicator
 - select unit → issue order
@@ -49,7 +50,11 @@ Scope:
 **Deliberate constraint:** the UI must not reach into simulation internals. It renders state and
 sends commands. If it needs something the state does not expose, add it to the state.
 
-### Phase 7 — Fog of war and the information model
+---
+
+## Next
+
+### Phase 7 — Fog of war and the information model ← **start here**
 
 **Why now:** GAP-01. The scenario already declares `fogOfWar: true` and nothing implements it.
 That is a lie in the data, and it must be closed before an AI commander is written, or the AI

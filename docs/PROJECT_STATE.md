@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `78aca01` (branch `feature/foundation`)
+**Last verified commit:** see `git log` (branch `feature/ui`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -14,16 +14,16 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT VERSION
 
-`0.1.0` — simulation core with one complete battle. Pre-alpha. No UI.
+`0.1.0` — simulation core with one complete battle, plus a playable browser UI. Pre-alpha.
 
 ## CURRENT PHASE
 
-Phase 0-5 complete (foundation through first historical battle). Next is a UI, then the AI
+Phases 0-6 complete (foundation through a playable UI). Next is fog of war, then the AI
 commander. See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (138 tests, 41 suites, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (140 tests across both packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -54,6 +54,10 @@ Verified by `npm test` (138 tests, 41 suites, all passing) and `npm run typechec
 - **Battle analysis** — findings labelled OBSERVED / INFERRED / SPECULATIVE, counts derived from
   the event log and asserted to match it.
 - **Bạch Đằng 1288 scenario** — the vertical slice, with honest epistemic labelling throughout.
+- **Playable browser UI** — canvas battlefield with tide-aware terrain shading, unit selection
+  and move orders, play/pause/speed, live tide and "channel closes in…" countdown, battle log,
+  and a post-battle screen showing findings with their OBSERVED / INFERRED / SPECULATIVE labels
+  plus the scenario's declared assumptions. Builds to a 35 KB bundle.
 
 ## IN PROGRESS
 
@@ -61,9 +65,9 @@ Nothing is half-finished. The tree is clean and all tests pass.
 
 ## NOT STARTED
 
-- **User interface.** This is the biggest gap. The core is currently driven only from tests.
-- **AI commander** (§31-35). No implementation. The engine accepts commands from any source, so
-  the seam exists, but nothing fills it.
+- **AI commander** (§31-35). The Yuan fleet is run by a deliberately simple scripted opponent in
+  the UI (`enemyCommands` in `main.ts`), which reads full state. A real AI commander must read
+  only observed state — so fog of war has to come first.
 - **Fog of war / information model.** `mechanics.fogOfWar` is declared in the Bạch Đằng scenario
   and *validated*, but **no code reads it**. INV-23 and INV-24 are specified and unenforced. This
   is the most important documentation-vs-reality gap in the project.
@@ -101,8 +105,10 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-138 tests, 41 suites — all passing
-tsc --noEmit — clean
+sim-core   138 tests — all passing
+game-ui      2 tests — all passing
+tsc --noEmit — clean in both packages
+vite build  — clean (35 KB bundle)
 ```
 
 Covered: epistemic model, RNG determinism, tide physics, invariants, baseline immutability,
@@ -110,27 +116,30 @@ scenario validation, engine determinism and purity, commands, combat factors, vi
 evaluation, replay reproduction, save round-trip, what-if isolation, analysis honesty, and
 Bạch Đằng historical regression checks.
 
-Not covered: anything with no implementation (UI, AI, fog of war), and performance/scale.
+The UI smoke test boots the real shell against a fake DOM, which catches the failure class
+typechecking cannot see: an element id referenced in code but missing from the HTML.
+
+Not covered: AI, fog of war, actual pixel rendering, and performance at scale.
 
 ## CURRENT BUILD STATUS
 
-`npm test` and `npm run typecheck` both pass on Windows with Node 24.14.1.
+`npm test`, `npm run typecheck` and the Vite production build all pass on Windows with
+Node 24.14.1. The built page was served and its assets fetched over HTTP.
 **No desktop or Android build has been attempted.** Do not claim these work.
 
 ## LAST VERIFIED COMMIT
 
-`78aca01` — "Complete the MVP core loop: replay, save/load, what-if and analysis"
+See `git log` on branch `feature/ui` — the UI commit is the latest verified state.
 
 ## NEXT RECOMMENDED WORK
 
 In dependency order:
 
-1. **A minimal UI.** The core loop works but nobody can *play* it. This is the highest-value next
-   step and will surface design problems that tests cannot.
-2. **Fog of war**, to close the gap between the declared mechanic and the code. Either implement
-   it or remove the flag — a declared-but-ignored mechanic is a lie in the data.
-3. **AI commander** reading only observed state.
-4. **A second battle**, to test the extensibility claim in §72 before more is built on it.
+1. **Fog of war**, to close GAP-01. Either implement it or remove the flag — a declared-but-
+   ignored mechanic is a lie in the data. Must land before the AI commander.
+2. **AI commander** reading only observed state, replacing the scripted opponent.
+3. **A second battle**, to test the extensibility claim in §72 before more is built on it.
+4. **Terrain effects** (GAP-02), so the marsh and tidal flats stop being decorative.
 
 ## DO NOT BREAK
 
@@ -144,3 +153,5 @@ In dependency order:
 - **The engine must contain no battle-specific branches.** Mechanics are declared as scenario
   data.
 - **Invariant violations must throw, never self-repair.**
+- **Passive play must not win Bạch Đằng.** The obstacles only hold vessels fast; converting that
+  into a result is the player's job. A test asserts this across several seeds.

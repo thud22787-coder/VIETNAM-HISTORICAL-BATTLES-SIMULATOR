@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bạch Đằng 1288 — Vietnam Historical Battles Simulator</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #151b23;
+    --border: #262d38;
+    --text: #e8e4dc;
+    --dim: #8b8681;
+    --accent: #e8b04b;
+    --danger: #c1504a;
+    --warn: #d98d3a;
+    --ok: #7bbf6a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  #app { display: grid; grid-template-columns: 1fr 300px; height: 100vh; }
+  #stage { position: relative; display: flex; flex-direction: column; min-width: 0; }
+  #canvasWrap { flex: 1; position: relative; min-height: 0; }
+  canvas { display: block; cursor: crosshair; }
+
+  /* ---- top bar ---- */
+  #topbar {
+    display: flex; align-items: center; gap: 18px;
+    padding: 10px 14px; background: var(--panel);
+    border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .stat { display: flex; flex-direction: column; line-height: 1.25; }
+  .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--dim); }
+  .stat .value { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .value.warn { color: var(--warn); }
+  .value.danger { color: var(--danger); }
+
+  button {
+    background: #1f2733; color: var(--text); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { background: #2a3542; }
+  button.active { background: var(--accent); color: #1a1207; border-color: var(--accent); }
+  .spacer { flex: 1; }
+
+  /* ---- tide gauge ---- */
+  #tideGauge {
+    width: 26px; height: 44px; border: 1px solid var(--border);
+    border-radius: 3px; position: relative; overflow: hidden; background: #0a0f14;
+  }
+  #tideBar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, #3d7ea6, #1b3a52);
+    transition: height .2s linear;
+  }
+
+  /* ---- sidebar ---- */
+  #sidebar {
+    background: var(--panel); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .section h3 {
+    margin: 0 0 8px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .09em; color: var(--dim); font-weight: 600;
+  }
+  .dim { color: var(--dim); }
+  .force { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 13px; }
+  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+  .sw-dv { background: #e8b04b; }
+  .sw-yn { background: #c1504a; }
+
+  .unit-row { margin-bottom: 8px; font-size: 12px; display: flex; flex-direction: column; }
+  #log { flex: 1; overflow-y: auto; padding: 10px 14px; font-size: 12px; }
+  .log-line { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+
+  /* ---- overlays ---- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(6, 9, 13, .93);
+    display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px;
+  }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 26px 30px; max-width: 620px; max-height: 86vh; overflow-y: auto;
+  }
+  .modal h1 { margin: 0 0 4px; font-size: 24px; }
+  .modal h2 { margin: 0 0 10px; font-size: 20px; }
+  .modal h3 {
+    margin: 20px 0 8px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--dim);
+  }
+  .modal ul { margin: 0; padding-left: 18px; }
+  .modal li { margin-bottom: 7px; font-size: 13px; }
+  .win { color: var(--ok); } .lose { color: var(--danger); }
+  .outcome { font-size: 15px; }
+
+  .finding { list-style: none; margin-left: -18px; margin-bottom: 10px; }
+  .tag {
+    font-size: 9px; letter-spacing: .08em; padding: 2px 5px; border-radius: 3px;
+    margin-right: 6px; vertical-align: middle;
+  }
+  .observed .tag { background: #2d4a3a; color: #9fd8ad; }
+  .inferred .tag { background: #3a3f5c; color: #b0b6e8; }
+  .speculative .tag { background: #4a3a2d; color: #e0bb92; }
+  .evidence { font-size: 11px; color: var(--dim); margin-top: 3px; margin-left: 2px; }
+  .assumptions li { font-size: 12px; color: var(--dim); }
+  .note {
+    font-size: 12px; color: var(--dim); border-left: 2px solid var(--border);
+    padding-left: 10px; margin-top: 16px;
+  }
+  .actions { margin-top: 22px; display: flex; gap: 10px; }
+
+  @media (max-width: 820px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 1fr 240px; }
+    #sidebar { border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="topbar">
+      <div id="tideGauge"><div id="tideBar" style="height:100%"></div></div>
+      <div class="stat"><span class="label">Tide</span><span class="value" id="tideLevel">—</span></div>
+      <div class="stat"><span class="label">Phase</span><span class="value" id="tidePhase">—</span></div>
+      <div class="stat"><span class="label">Channel</span><span class="value" id="trapStatus">—</span></div>
+      <div class="stat"><span class="label">Elapsed</span><span class="value" id="clock">T+00:00</span></div>
+      <div class="spacer"></div>
+      <button id="playBtn">▶ Play</button>
+      <button id="stepBtn">Step</button>
+      <button data-speed="1">1×</button>
+      <button data-speed="4" class="active">4×</button>
+      <button data-speed="12">12×</button>
+      <button id="restartBtn">Restart</button>
+    </div>
+    <div id="canvasWrap"><canvas id="battlefield"></canvas></div>
+  </div>
+
+  <div id="sidebar">
+    <div class="section">
+      <h3>Forces</h3>
+      <div class="force"><span><span class="swatch sw-dv"></span>Đại Việt</span><span class="dim" id="forceDaiViet">—</span></div>
+      <div class="force"><span><span class="swatch sw-yn"></span>Yuan fleet</span><span class="dim" id="forceYuan">—</span></div>
+    </div>
+    <div class="section">
+      <h3>Selection</h3>
+      <div id="selection"><span class="dim">Click a unit to select.</span></div>
+    </div>
+    <div class="section" style="border-bottom:none;padding-bottom:6px">
+      <h3>Battle log <span class="dim" id="tickLen"></span></h3>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<!-- Briefing -->
+<div class="overlay" id="briefingOverlay">
+  <div class="modal">
+    <h1 id="briefTitle">—</h1>
+    <p class="dim" id="briefLocation">—</p>
+    <p id="briefText">—</p>
+
+    <h3>Forces</h3>
+    <ul id="briefForces"></ul>
+
+    <h3>You command Đại Việt</h3>
+    <p style="font-size:13px">
+      The channel has been prepared. Your light craft draw little water and can cross the
+      obstructions freely; the Yuan fleet cannot, once the tide falls far enough.
+      Watch the <strong>Channel</strong> readout — it tells you when the trap closes.
+    </p>
+    <p style="font-size:13px" class="dim">
+      Left-click selects, shift-click adds, right-click orders a move.
+    </p>
+
+    <div class="note">
+      This is a simulation, not a reconstruction. Force sizes are unknown — no reliable
+      figures survive — and the map is schematic. What is grounded in evidence is the
+      stakes themselves and the tidal regime. See the assumptions listed after the battle.
+    </div>
+
+    <div class="actions"><button id="startBtn" class="active">Begin</button></div>
+  </div>
+</div>
+
+<!-- Result -->
+<div class="overlay" id="resultOverlay" style="display:none">
+  <div class="modal">
+    <div id="resultBody"></div>
+    <div class="actions"><button id="closeResult">Close</button></div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -120,7 +120,17 @@ function buildTerrain(): TerrainMap {
  */
 function buildStakeField(): { x: number; y: number }[] {
   const cells: { x: number; y: number }[] = [];
-  for (let x = 40; x <= 45; x++) {
+  // Placed DOWNSTREAM, near the seaward end of the channel (world x
+  // 1200-1900m). Position is dictated by the time geometry: the fleet starts
+  // upstream around x=5400 and makes ~1100 m/h, so it reaches this line about
+  // three hours in -- by which time the ebb has taken the water below what a
+  // deep hull needs. Placed further upstream the fleet would cross while the
+  // tide was still high and the obstructions would never bite.
+  //
+  // This also matches the tactical logic of the accounts: the obstructions are
+  // between the fleet and the open sea, so the trap is sprung on a force that
+  // is already committed to withdrawing.
+  for (let x = 12; x <= 18; x++) {
     for (let y = 12; y <= 28; y++) {
       cells.push({ x, y });
     }
@@ -224,10 +234,12 @@ function buildUnits(): Unit[] {
   // prepared ground. This matters: if the defenders sat on top of the stake
   // field they would simply intercept the fleet before it ever reached the
   // trap, and the tide would decide nothing.
+  // Two flotillas harass from upstream, driving the fleet on; two wait
+  // downstream near the obstructions to fall on whatever grounds there.
   units.push(light(1, 5100, 1500));
   units.push(light(2, 5100, 2500));
-  units.push(light(3, 5300, 1300));
-  units.push(light(4, 5300, 2700));
+  units.push(light(3, 2100, 1500));
+  units.push(light(4, 2100, 2500));
 
   // Shore troops on the banks, able to engage vessels grounded near the flats.
   for (let i = 0; i < 2; i++) {
@@ -244,7 +256,7 @@ function buildUnits(): Unit[] {
       supply: 1,
       // Bank detachments overlook the stake field, ready to fall on vessels
       // that ground there. They cannot reach midstream.
-      position: { x: 4300, y: i === 0 ? 900 : 3100 },
+      position: { x: 1600, y: i === 0 ? 900 : 3100 },
       status: 'ACTIVE',
       baseSpeedMPerHour: 3000,
       commanderId: commanderId('tran-hung-dao'),
@@ -267,9 +279,12 @@ function buildUnits(): Unit[] {
       position: { x: 5400, y: 1700 + i * 150 },
       status: 'ACTIVE',
       draftM: 1.5,
-      // Slow: heavy, deep-laden, and withdrawing under harassment. This speed
-      // is what puts the escape and the ebb on comparable timescales.
-      baseSpeedMPerHour: 1100,
+      // Tuned against the tide, which is the whole design of this scenario.
+      // The fleet must cover ~4.2km to the obstructions; at this speed that
+      // takes ~1.6h, and the channel closes to deep hulls at ~2h. So a fleet
+      // that sails at once gets out, and one that hesitates does not. If this
+      // number changes, recheck the escape-window regression tests.
+      baseSpeedMPerHour: 2600,
       commanderId: commanderId('omar'),
     });
   }
@@ -289,7 +304,7 @@ function buildUnits(): Unit[] {
       position: { x: 5600, y: 1800 + i * 200 },
       status: 'ACTIVE',
       draftM: 0.9,
-      baseSpeedMPerHour: 1500,
+      baseSpeedMPerHour: 3000,
       commanderId: commanderId('omar'),
     });
   }
@@ -400,7 +415,13 @@ export const BACH_DANG_1288: BattleScenario = {
       id: 'dv-trap-fleet',
       faction: DAI_VIET,
       description: 'Neutralise the Yuan fleet before it reaches open water',
-      condition: { kind: 'FLEET_NEUTRALISED', targetFaction: YUAN, fractionNeutralised: 0.6 },
+      // Calibrated against what good play can actually achieve. The obstacles
+      // typically hold about half the fleet; converting those into destroyed
+      // vessels requires the player to bring the shore detachments onto them.
+      // Passive play leaves them merely held fast, the tide turns, and the
+      // attempt fails -- so the threshold sits just above what the trap
+      // delivers on its own.
+      condition: { kind: 'FLEET_NEUTRALISED', targetFaction: YUAN, fractionNeutralised: 0.5 },
     },
     {
       id: 'yuan-break-out',
@@ -414,10 +435,13 @@ export const BACH_DANG_1288: BattleScenario = {
   // above the obstructions is not getting out, and the Yuan attempt to break
   // through has failed. Six hours is a little past the point where deep-draft
   // ships lose all clearance.
+  // If the player never converts the trap, the surviving fleet works its way
+  // clear on the next flood and the attempt has failed. The defender does not
+  // win by default here -- the trap has to be exploited.
   timeLimit: {
     hours: 6,
-    favours: DAI_VIET,
-    reason: 'The tide ran out with the Yuan fleet still in the estuary',
+    favours: YUAN,
+    reason: 'The Yuan fleet held out until the tide turned and the channel reopened',
   },
 
   historicalPhases: [

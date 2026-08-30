@@ -36,7 +36,7 @@ import { createRng, restoreRng, type Rng } from './rng.ts';
  * that alters results (§53). Replays record it and refuse to run against a
  * different one (INV-18).
  */
-export const SIMULATION_VERSION = '0.1.0';
+export const SIMULATION_VERSION = '0.2.0';
 
 /** In-world minutes advanced per tick. */
 export const MINUTES_PER_TICK = 5;
@@ -62,8 +62,17 @@ export type Command =
  * documented in one place.
  */
 export const TUNING = {
-  /** Melee engagement range in metres. */
-  engagementRangeM: 150,
+  /**
+   * Engagement range in metres.
+   *
+   * Sized against the map, not against intuition: the Bach Dang map is 6km
+   * across with 100m terrain cells, so a 150m range meant units had to almost
+   * collide before they could fight, and trapped vessels were never finished
+   * off. 400m is roughly four cells -- close enough to still require the player
+   * to actually manoeuvre onto the enemy, wide enough that closing on a
+   * grounded ship works.
+   */
+  engagementRangeM: 400,
   /** Base fraction of strength lost per tick by a unit in combat. */
   baseCasualtyRate: 0.04,
   /** How strongly a numerical advantage tells. */
@@ -84,8 +93,17 @@ export const TUNING = {
   maxCommanderBonus: 0.25,
   /** Safety clearance required over an obstacle, in metres. */
   obstacleClearanceM: 0.2,
-  /** Multiplier on damage taken while immobilised — a trapped ship is helpless. */
-  immobilisedVulnerability: 2.5,
+  /**
+   * Multiplier on damage taken while immobilised.
+   *
+   * A ship held fast on obstructions, listing as the water leaves it, cannot
+   * manoeuvre, cannot present its own weapons well, and cannot withdraw. This
+   * is deliberately punishing: in this battle, being caught IS the defeat, and
+   * the attacking force's job is to convert that into a result.
+   */
+  immobilisedVulnerability: 4.0,
+  /** Fraction of strength a held-fast vessel loses each tick to its own plight. */
+  immobilisedAttritionPerTick: 0.02,
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -320,7 +338,14 @@ function applyCombat(units: Unit[], ctx: StepContext): void {
     units[i] = {
       ...u,
       strength: newStrength,
-      morale: clamp01(u.morale - TUNING.moraleLossPerTick * (1 + lostFraction * 4)),
+      // Morale loss must scale with how badly the unit is actually being hurt.
+      // A flat per-tick penalty meant a formation taking trivial scratches
+      // routed on a timer regardless of its losses, which produced heavy ships
+      // breaking at ~93% strength. The floor term keeps contact meaningful;
+      // the lostFraction term is what does the work.
+      morale: clamp01(
+        u.morale - TUNING.moraleLossPerTick * (0.15 + lostFraction * 12),
+      ),
       fatigue: clamp01(u.fatigue + TUNING.fatiguePerTick),
       cohesion: clamp01(u.cohesion - lostFraction * 0.5),
       status: newStrength === 0 ? 'DESTROYED' : u.status === 'IMMOBILISED' ? 'IMMOBILISED' : 'ENGAGED',
@@ -328,7 +353,37 @@ function applyCombat(units: Unit[], ctx: StepContext): void {
   }
 }
 
-/** 4. Morale and recovery. Unengaged units recover; broken units rout. */
+/**
+ * 4. Immobilised attrition. A vessel held fast on obstructions is progressively
+ *    wrecked by its own weight and the falling water, independently of whether
+ *    an enemy is alongside. Without this, a trapped ship that nobody reaches
+ *    simply sits intact for the rest of the battle, which is neither historical
+ *    nor interesting.
+ */
+function applyImmobilisedAttrition(units: Unit[], ctx: StepContext): void {
+  for (let i = 0; i < units.length; i++) {
+    const u = units[i]!;
+    if (u.status !== 'IMMOBILISED') continue;
+
+    const loss = Math.ceil(u.strength * TUNING.immobilisedAttritionPerTick);
+    const strength = Math.max(0, u.strength - loss);
+    const destroyed = strength === 0;
+
+    units[i] = {
+      ...u,
+      strength,
+      status: destroyed ? 'DESTROYED' : 'IMMOBILISED',
+      morale: destroyed ? 0 : clamp01(u.morale - TUNING.moraleLossPerTick * 0.5),
+      cohesion: clamp01(u.cohesion - 0.02),
+    };
+
+    if (destroyed) {
+      record(ctx, `${u.name} broke up on the obstructions`, [u.id], u.position);
+    }
+  }
+}
+
+/** 5. Morale and recovery. Unengaged units recover; broken units rout. */
 function applyMorale(units: Unit[], orders: Map<UnitId, Command>, ctx: StepContext): void {
   for (let i = 0; i < units.length; i++) {
     const u = units[i]!;
@@ -409,9 +464,13 @@ export function evaluateVictory(
         (u) => u.faction === cond.targetFaction && isWaterborne(u.kind),
       );
       if (fleet.length === 0) continue;
+      // By default a held-fast vessel is not yet neutralised: it has to be
+      // finished. Scenarios may opt in to counting it via countImmobilised.
+      const countStuck = cond.countImmobilised ?? false;
       const neutralised = fleet.filter((iu) => {
         const now = units.find((u) => u.id === iu.id);
-        return !now || !canAct(now) || now.status === 'IMMOBILISED';
+        if (!now || !canAct(now)) return true;
+        return countStuck && now.status === 'IMMOBILISED';
       }).length;
       if (neutralised / fleet.length >= cond.fractionNeutralised) {
         return {
@@ -457,7 +516,7 @@ export function evaluateVictory(
  *
  * Pure: same (state, commands, scenario) always yields the same next state.
  * System order is fixed and load-bearing for determinism:
- *   movement -> obstacles -> combat -> morale -> victory
+ *   movement -> obstacles -> combat -> immobilised attrition -> morale -> victory
  *
  * Obstacles resolve before combat so that a ship grounded this tick is already
  * vulnerable when blows are exchanged — which is precisely the historical
@@ -492,6 +551,7 @@ export function step(
   applyMovement(units, orders, ctx);
   applyObstacles(units, ctx);
   applyCombat(units, ctx);
+  applyImmobilisedAttrition(units, ctx);
   applyMorale(units, orders, ctx);
 
   const outcome = evaluateVictory(units, scenario, elapsedHours);
