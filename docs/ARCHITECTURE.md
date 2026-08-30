@@ -92,7 +92,7 @@ engine rewrite.
 Within a tick, systems run in a fixed order:
 
 ```
-movement → obstacles → combat → morale → victory
+movement → obstacles → combat → immobilised attrition → morale → victory
 ```
 
 The order is not arbitrary. **Obstacles resolve before combat** so a vessel grounded this tick is
@@ -127,11 +127,11 @@ Three contracts are executable rather than aspirational:
 These refusals are hard failures by design. A replay run against changed rules produces a
 plausible battle that never happened — worse than no replay at all.
 
-## Planned layers (not yet built)
+## Layers
 
 ```
   ┌─────────────────────────────────────┐
-  │  UI (web)     — React + Canvas      │  ← next
+  │  UI (web)     — canvas, BUILT       │
   ├─────────────────────────────────────┤
   │  AI Commander — observed state only │  ← next
   ├─────────────────────────────────────┤
@@ -142,7 +142,17 @@ plausible battle that never happened — worse than no replay at all.
    (desktop)           (Android)
 ```
 
-The AI commander will consume an *observed* view of the state, never ground truth, so that fog of
-war constrains it exactly as it constrains the player (§32, §34). The information model
-(`KNOWN` / `ESTIMATED` / `UNKNOWN`) is specified in the invariants (INV-23, INV-24) but not yet
-implemented — see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+## Fog of war: the observation boundary
+
+`observe(state, faction, scenario, rng, memory)` projects the true state into what one side can
+perceive. Everything that makes a decision — the UI, and in future the AI commander — consumes
+`ObservedState` and never `BattleState`.
+
+The enforcement is structural rather than disciplinary. `ObservedUnit` is not a `Unit`: it has no
+morale, fatigue, cohesion, supply or commander, and its strength is a bracketed estimate rather
+than a number. Passing ground truth where an observation is expected is a **type error**, so the
+usual failure mode — an AI that quietly reads what it should not — cannot happen by accident.
+
+Sighting memory lives outside `BattleState`, in the caller. Memory belongs to a commander, not to
+the battlefield, and putting both sides’ beliefs into shared state would store each side’s picture
+where the other could read it.

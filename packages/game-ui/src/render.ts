@@ -8,17 +8,25 @@
  * This module RENDERS STATE. It never reaches into simulation internals and
  * never mutates anything. If it needs information the state does not expose,
  * the fix is to expose it from the core, not to compute it here.
+ *
+ * FOG OF WAR
+ *
+ * It draws from `ObservedState`, never from `BattleState`. That is deliberate
+ * and load-bearing: the renderer physically cannot draw an enemy the player has
+ * not seen, because it is never handed one. A leak would have to be introduced
+ * by changing this signature, which is a visible act rather than an oversight.
  */
 
 import type {
-  BattleState,
   BattleScenario,
   Unit,
   UnitId,
   TideState,
   TerrainCell,
+  ObservedState,
+  ObservedUnit,
 } from '@vhbs/sim-core';
-import { isWaterborne, canAct } from '@vhbs/sim-core';
+import { isWaterborne, canAct, estimateOf } from '@vhbs/sim-core';
 
 export interface Viewport {
   readonly width: number;
@@ -70,17 +78,16 @@ const factionColour = (faction: string): string =>
   faction === 'yuan' ? COLOURS.yuan : COLOURS.daiViet;
 
 export interface RenderInput {
-  readonly state: BattleState;
+  /** What the player can see. NOT the true battle state. */
+  readonly observed: ObservedState;
   readonly scenario: BattleScenario;
   readonly tide: TideState | null;
   readonly selected: ReadonlySet<UnitId>;
   readonly viewport: Viewport;
-  /** Faction the player controls; obstacles are shown only if this side knows them. */
-  readonly playerFaction: string;
 }
 
 export function render(ctx: CanvasRenderingContext2D, input: RenderInput): void {
-  const { state, scenario, tide, selected, viewport, playerFaction } = input;
+  const { observed, scenario, tide, selected, viewport } = input;
   const { scale } = viewport;
   const cellPx = scenario.terrain.cellSizeM / scale;
 
@@ -113,12 +120,9 @@ export function render(ctx: CanvasRenderingContext2D, input: RenderInput): void 
 
   /* --- Obstacle fields --- */
 
-  for (const field of scenario.mechanics.obstacleFields ?? []) {
-    // Only the side that placed them knows where they are (§17). The other
-    // side sees nothing — which is the whole point of the trap.
-    const known = field.knownToFaction === playerFaction;
-    if (!known) continue;
-
+  // `knownObstacles` has already been filtered by the observation layer to what
+  // this side placed (§17), so there is no visibility decision to make here.
+  for (const field of observed.knownObstacles) {
     const clearance = tide ? tide.levelM - field.topHeightM : null;
 
     for (const c of field.cells) {
@@ -156,9 +160,93 @@ export function render(ctx: CanvasRenderingContext2D, input: RenderInput): void 
 
   /* --- Units --- */
 
-  for (const unit of state.units) {
+  // Enemies first, so friendly markers draw on top where they overlap.
+  for (const enemy of observed.enemies) {
+    drawObservedEnemy(ctx, enemy, scale);
+  }
+  for (const unit of observed.own) {
     drawUnit(ctx, unit, scale, selected.has(unit.id));
   }
+}
+
+/**
+ * Draw an enemy as the player perceives it.
+ *
+ * A remembered contact is drawn faded and ghosted at its last known position,
+ * because that is genuinely what the commander has: an old report, not a
+ * tracking display.
+ */
+function drawObservedEnemy(
+  ctx: CanvasRenderingContext2D,
+  enemy: ObservedUnit,
+  scale: number,
+): void {
+  const x = enemy.position.x / scale;
+  const y = enemy.position.y / scale;
+  const waterborne =
+    enemy.kind !== 'UNIDENTIFIED' && isWaterborne(enemy.kind);
+  const r = waterborne ? 8 : 7;
+
+  ctx.save();
+
+  if (enemy.apparentStatus === 'BROKEN') {
+    ctx.strokeStyle = COLOURS.destroyed;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y - 4);
+    ctx.lineTo(x + 4, y + 4);
+    ctx.moveTo(x + 4, y - 4);
+    ctx.lineTo(x - 4, y + 4);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  // Stale sightings are ghosted. The dashed ring says "this is where they were".
+  if (!enemy.inContact) {
+    ctx.globalAlpha = 0.4;
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = COLOURS.yuan;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.fillStyle = COLOURS.yuan;
+
+  if (waterborne) {
+    ctx.beginPath();
+    ctx.moveTo(x - r, y);
+    ctx.lineTo(x, y - r * 0.6);
+    ctx.lineTo(x + r, y);
+    ctx.lineTo(x, y + r * 0.6);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillRect(x - r, y - r * 0.7, r * 2, r * 1.4);
+  }
+
+  // A vessel visibly in trouble is the player's cue to close in.
+  if (enemy.apparentStatus === 'IN_TROUBLE') {
+    ctx.strokeStyle = COLOURS.immobilised;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Estimated strength, not a true count.
+  const est = estimateOf(enemy.strength);
+  if (est !== null && enemy.inContact) {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = COLOURS.textDim;
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText(`~${Math.round(est)}`, x - r, y + r + 12);
+  }
+
+  ctx.restore();
 }
 
 function drawUnit(
@@ -230,9 +318,13 @@ function drawUnit(
   ctx.restore();
 }
 
-/** Unit nearest a click, within a tolerance. Used for selection. */
+/**
+ * Own unit nearest a click, within a tolerance. Used for selection.
+ *
+ * Takes only the player's own units, since those are the only ones selectable.
+ */
 export function unitAt(
-  state: BattleState,
+  own: readonly Unit[],
   worldX: number,
   worldY: number,
   toleranceM: number,
@@ -240,7 +332,7 @@ export function unitAt(
   let best: Unit | null = null;
   let bestDist = toleranceM;
 
-  for (const unit of state.units) {
+  for (const unit of own) {
     if (!canAct(unit)) continue;
     const d = Math.hypot(unit.position.x - worldX, unit.position.y - worldY);
     if (d <= bestDist) {

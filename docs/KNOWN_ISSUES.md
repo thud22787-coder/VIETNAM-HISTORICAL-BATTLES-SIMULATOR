@@ -19,22 +19,25 @@ surface; the unimplemented surface cannot have bugs yet.)
 ## Gaps between documentation and code
 
 These are the dangerous ones, because a future reader could trust the wrong side.
+GAP-01 is retained below, closed, as a record of what the failure looked like.
 
-### GAP-01 — `fogOfWar` is declared but not implemented
+### GAP-01 — `fogOfWar` declared but not implemented — **CLOSED**
 
-**Severity:** high (misleading data)
+Closed by `state/observed.ts`. `observe(state, faction, scenario, rng, memory)` projects the true
+state into what one side can legitimately perceive: sighting range modified by terrain, strength
+as a bracketed estimate that tightens with proximity (INV-24), remembered contacts that go stale
+and expire, obstacles known only to the side that placed them, and events filtered to what could
+have been witnessed.
 
-`BACH_DANG_1288.mechanics.fogOfWar` is `true`. The scenario validator accepts it. **No code reads
-it.** All units currently see all other units.
+The projection returns types that are *structurally different* from the domain types — an
+`ObservedUnit` is not a `Unit` — so consuming ground truth by accident is a type error rather
+than an invisible cheat. `assertNoLeaks` enforces INV-23 and is checked at every tick of a real
+battle in tests. The UI renders exclusively from `ObservedState`, and a test catches any attempt
+to widen the render input back to `BattleState`.
 
-INV-23 and INV-24 (information model) are written in
-[GAME_STATE_INVARIANTS.md](GAME_STATE_INVARIANTS.md) and enforced nowhere.
-
-**Impact:** a scenario claims a mechanic it does not have. Any AI commander written before this
-is fixed will read ground truth and violate §32/§34 without anyone noticing.
-
-**Fix:** implement an observed-state projection, or remove the flag until it is real. Do not
-leave it as is.
+Left deliberately: **the human player's own units are fully known to them**, which is correct —
+they report in. Messenger delay and misinformation (§18) are not modelled; the architecture
+allows them (memory is already per-commander and timestamped) but nothing needs them yet.
 
 ### GAP-02 — Terrain does not affect movement or combat
 

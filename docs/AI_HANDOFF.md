@@ -3,13 +3,115 @@
 Session notes for whoever picks this up next. Factual, evidence-based (§64) — claims here were
 verified by running things, not by remembering them.
 
+Most recent session first.
+
+---
+
+## SESSION 2 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-7 complete. Fog of war is implemented; the AI commander is next.
+
+### WHAT WAS DONE
+
+Closed **GAP-01**, which the previous session flagged as the most important
+documentation-vs-reality gap in the project: `mechanics.fogOfWar` was declared `true` in the
+Bạch Đằng scenario and no code read it.
+
+Built `packages/sim-core/src/state/observed.ts`:
+
+- `observe(state, faction, scenario, rng, memory)` projects true state into one side's view
+- sighting range from a base of 1200 m, modified by terrain (forest conceals to 45%, marsh 70%);
+  observers on hills and riverbanks see slightly further
+- enemy strength arrives as a **bracketed estimate** that tightens with proximity (INV-24),
+  never as the true number
+- sighting memory: lost contacts are remembered at their last known position, flagged stale,
+  and expire after 24 ticks (two in-world hours)
+- obstacle fields are visible only to the faction that placed them — the data already recorded
+  `knownToFaction`, nothing had used it
+- events are filtered to those a side could plausibly have witnessed
+- `assertNoLeaks()` is the executable form of INV-23
+
+Wired it through the UI: the renderer now takes `ObservedState` and never `BattleState`, and the
+scripted opponent reads its own observed view.
+
+### THE DESIGN DECISION WORTH KNOWING
+
+The observed types are **structurally different** from the domain types. An `ObservedUnit` has no
+morale, fatigue, cohesion, supply or commander, and its strength is a bracket rather than a
+number. So passing ground truth where an observation is expected is a *type error*.
+
+That was deliberate. The classic failure mode for fog of war is an AI that quietly reads what it
+should not, and it is nearly invisible in review because the code looks reasonable. Making the
+types incompatible means the mistake cannot be made by accident.
+
+A second decision: an enemy never seen is **absent** from the observed state, not present as an
+`UNKNOWN` placeholder. Knowing that an unseen enemy exists is itself unearned information.
+
+Third: sighting memory lives *outside* `BattleState`, in the caller. Memory belongs to a
+commander, not to the battlefield; storing both sides' beliefs in shared state would put each
+side's picture where the other could read it.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **171 tests passing** (164 sim-core, 7 game-ui), 0 failed
+- `npm run typecheck` → clean in both packages
+- `vite build` → clean, 40 KB bundle
+- A leak scan runs `assertNoLeaks` for **both factions at every tick** of a real battle
+- The UI fog guards were checked adversarially: a real ground-truth leak was planted into the
+  render input, the guard failed as intended, and the leak was removed
+- Probed a live battle and confirmed fog behaves: contact is lost at tick 9 (all eight ships go
+  stale) and regained at tick 17; estimates diverge from truth (3807 vs 4015 in contact, 909 vs
+  2509 when half the fleet is unobserved); the Yuan never learn the stake positions
+
+### BRANCH
+
+`feature/fog-of-war`, branched from `main`.
+
+### KNOWN RISKS
+
+- The §72 extensibility claim ("a new battle is data + config") is **still unverified** — there
+  is only one battle. This is now the biggest untested architectural assumption.
+- No desktop or Android build has ever been attempted.
+- Cross-platform determinism is designed for (uint32 arithmetic) but unverified on a device.
+- Fog of war adds an RNG consumer. Observation uses a *separate* seed derived per tick rather
+  than drawing from the battle's own stream, so it cannot shift simulation results — but if
+  anyone moves observation into `step()`, that must be rechecked or replays will break.
+
+### OPEN QUESTIONS
+
+1. Should the player see a strength estimate *range* rather than the midpoint? Currently the UI
+   shows `~N`. The bracket is available and arguably more honest.
+2. Messenger delay and misinformation (§18) are unmodelled. The architecture allows them —
+   memory is per-commander and timestamped — but nothing needs them yet.
+3. Should the human player's own units be fully known? Currently yes, which seems right (they
+   report in), but a stricter model would degrade reports from distant detachments.
+
+### NEXT STEPS
+
+1. **AI commander** (Phase 8). Fog of war now makes this honest by construction: the AI is handed
+   an `ObservedState` and there is no route back to ground truth. Replace `enemyCommands` in
+   `main.ts`.
+2. **Second battle** (Phase 9) — the extensibility claim needs testing before more is built on it.
+3. **Terrain effects** (GAP-02).
+
+### DO NOT CHANGE
+
+Everything in Session 1's list still applies, plus:
+
+- **Nothing may render or decide from ground truth when fog is on.** The UI takes `ObservedState`;
+  tests catch any attempt to widen that back to `BattleState`.
+- **Observation must stay pure and outside `step()`**, or it will perturb the simulation RNG and
+  break replay.
+
 ---
 
 ## SESSION 1 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-6 complete. Simulation core, one battle, and a playable browser UI.
+**PHASE AT THE TIME:** Phases 0-6 complete. Simulation core, one battle, and a playable browser UI.
 
 ### WHAT WAS DONE
 

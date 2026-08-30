@@ -19,11 +19,17 @@ import {
   canAct,
   isWaterborne,
   timeUntilLevel,
+  observe,
+  emptyMemory,
+  estimateOf,
+  createRng,
   MINUTES_PER_TICK,
   type BattleState,
   type Command,
   type UnitId,
   type Unit,
+  type ObservedState,
+  type SightingMemory,
 } from '@vhbs/sim-core';
 import { render, unitAt, type Viewport } from './render.ts';
 
@@ -46,6 +52,31 @@ let lastFrame = performance.now();
 
 /** Orders that persist across ticks, so a unit keeps moving once told to. */
 const standingOrders = new Map<UnitId, Command>();
+
+/**
+ * What each side remembers seeing.
+ *
+ * Held here rather than in BattleState because memory belongs to a commander,
+ * not to the battlefield — and storing both sides' beliefs in shared state
+ * would put each side's picture where the other could read it.
+ */
+let playerMemory: SightingMemory = emptyMemory();
+let enemyMemory: SightingMemory = emptyMemory();
+
+/** The player's current view. Everything the UI renders comes from this. */
+let playerView: ObservedState = observePlayer();
+
+function observePlayer(): ObservedState {
+  const result = observe(
+    state,
+    PLAYER_FACTION as never,
+    scenario,
+    createRng(`obs-${state.seed}-${state.tick}`),
+    playerMemory,
+  );
+  playerMemory = result.memory;
+  return result.observed;
+}
 
 const mapWidthM = scenario.terrain.widthCells * scenario.terrain.cellSizeM;
 const mapHeightM = scenario.terrain.heightCells * scenario.terrain.cellSizeM;
@@ -81,13 +112,29 @@ window.addEventListener('resize', resize);
 /* ------------------------------------------------------------------ */
 
 /**
- * The Yuan fleet makes for open water. This is NOT the AI commander from
- * §31-35 — it is a deliberately simple stand-in so the battle is playable.
- * It reads full state, which a real AI commander must not do (§32, §34).
+ * The Yuan fleet makes for open water.
+ *
+ * This is NOT the AI commander from §31-35 — it is a deliberately simple
+ * stand-in so the battle is playable. But it now reads its OWN observed view
+ * rather than ground truth, which matters more than the sophistication of its
+ * decisions: it does not know where the stake field is, so it sails into the
+ * trap for the same reason the historical fleet did.
+ *
+ * When the real AI commander lands (roadmap Phase 8), it replaces this and
+ * inherits the same constraint by construction.
  */
-function enemyCommands(s: BattleState): Command[] {
-  return s.units
-    .filter((u) => u.faction === ENEMY_FACTION && canAct(u))
+function enemyCommands(): Command[] {
+  const result = observe(
+    state,
+    ENEMY_FACTION as never,
+    scenario,
+    createRng(`enemy-obs-${state.seed}-${state.tick}`),
+    enemyMemory,
+  );
+  enemyMemory = result.memory;
+
+  return result.observed.own
+    .filter((u) => canAct(u))
     .map((u) => ({ kind: 'MOVE' as const, unitId: u.id, to: { x: 150, y: u.position.y } }));
 }
 
@@ -102,7 +149,7 @@ function advance(): void {
     return;
   }
 
-  const commands: Command[] = [...enemyCommands(state)];
+  const commands: Command[] = [...enemyCommands()];
   for (const [unitId, order] of standingOrders) {
     const unit = state.units.find((u) => u.id === unitId);
     if (!unit || !canAct(unit)) {
@@ -113,6 +160,7 @@ function advance(): void {
   }
 
   state = step(state, commands, scenario);
+  playerView = observePlayer();
 }
 
 function frame(now: number): void {
@@ -145,7 +193,7 @@ function currentTide() {
 
 function draw(): void {
   const tide = currentTide();
-  render(ctx, { state, scenario, tide, selected, viewport, playerFaction: PLAYER_FACTION });
+  render(ctx, { observed: playerView, scenario, tide, selected, viewport });
   updatePanels(tide);
 }
 
@@ -170,11 +218,14 @@ function updatePanels(tide: ReturnType<typeof currentTide>): void {
 
     // Warn the ENEMY-facing danger explicitly: how long until deep-draft
     // vessels can no longer clear the obstacles. This is the tactical clock.
-    const field = scenario.mechanics.obstacleFields?.[0];
+    // Uses the obstacle the player KNOWS about, and the deepest draft among
+    // enemy vessels currently in sight. A commander who has lost contact does
+    // not get a live readout of the enemy's predicament.
+    const field = playerView.knownObstacles[0];
     const deepest = Math.max(
-      ...state.units
-        .filter((u) => u.faction === ENEMY_FACTION && isWaterborne(u.kind) && canAct(u))
-        .map((u) => u.draftM ?? 0),
+      ...playerView.enemies
+        .filter((e) => e.inContact && e.kind !== 'UNIDENTIFIED' && isWaterborne(e.kind))
+        .map((e) => (e.kind === 'HEAVY_SHIP' ? 1.5 : e.kind === 'WAR_JUNK' ? 0.9 : 0.4)),
       0,
     );
     if (field && deepest > 0) {
@@ -191,20 +242,30 @@ function updatePanels(tide: ReturnType<typeof currentTide>): void {
     }
   }
 
-  /* Force summary */
-  const summary = (faction: string): string => {
-    const us = state.units.filter((u) => u.faction === faction);
-    const alive = us.filter(canAct).length;
-    const stuck = us.filter((u) => u.status === 'IMMOBILISED').length;
-    const strength = us.filter(canAct).reduce((s, u) => s + u.strength, 0);
-    return `${alive}/${us.length} units · ${Math.round(strength)} str${stuck ? ` · ${stuck} held fast` : ''}`;
-  };
-  $('forceDaiViet').textContent = summary(PLAYER_FACTION);
-  $('forceYuan').textContent = summary(ENEMY_FACTION);
+  /* Force summary — own exact, enemy only as observed */
+  const own = playerView.own;
+  const ownAlive = own.filter(canAct);
+  const ownStuck = own.filter((u) => u.status === 'IMMOBILISED').length;
+  $('forceDaiViet').textContent =
+    `${ownAlive.length}/${own.length} units · ${Math.round(
+      ownAlive.reduce((s, u) => s + u.strength, 0),
+    )} str${ownStuck ? ` · ${ownStuck} held fast` : ''}`;
+
+  const seen = playerView.enemies.filter((e) => e.inContact);
+  const stale = playerView.enemies.length - seen.length;
+  const inTrouble = seen.filter((e) => e.apparentStatus === 'IN_TROUBLE').length;
+  const estTotal = seen.reduce((sum, e) => sum + (estimateOf(e.strength) ?? 0), 0);
+
+  $('forceYuan').textContent =
+    playerView.enemies.length === 0
+      ? 'no contact'
+      : `${seen.length} in sight${stale ? ` · ${stale} last seen` : ''} · ~${Math.round(estTotal)} str${
+          inTrouble ? ` · ${inTrouble} in trouble` : ''
+        }`;
 
   /* Selection */
   const sel = [...selected]
-    .map((id) => state.units.find((u) => u.id === id))
+    .map((id) => playerView.own.find((u) => u.id === id))
     .filter((u): u is Unit => u !== undefined);
 
   $('selection').innerHTML =
@@ -221,7 +282,7 @@ function updatePanels(tide: ReturnType<typeof currentTide>): void {
           .join('');
 
   /* Event log — newest first, capped for readability */
-  const recent = state.events.slice(-40).reverse();
+  const recent = playerView.events.slice(-40).reverse();
   $('log').innerHTML = recent
     .map((e) => `<div class="log-line"><span class="dim">t${e.tick}</span> ${e.message}</div>`)
     .join('');
@@ -287,9 +348,9 @@ const toWorld = (ev: MouseEvent): { x: number; y: number } => {
 canvas.addEventListener('mousedown', (ev) => {
   if (ev.button !== 0) return;
   const { x, y } = toWorld(ev);
-  const hit = unitAt(state, x, y, viewport.scale * 14);
+  const hit = unitAt(playerView.own, x, y, viewport.scale * 14);
 
-  if (!hit || hit.faction !== PLAYER_FACTION) {
+  if (!hit) {
     if (!ev.shiftKey) selected.clear();
     return;
   }
@@ -306,7 +367,7 @@ canvas.addEventListener('contextmenu', (ev) => {
   const { x, y } = toWorld(ev);
 
   for (const id of selected) {
-    const unit = state.units.find((u) => u.id === id);
+    const unit = playerView.own.find((u) => u.id === id);
     if (!unit || !canAct(unit)) continue;
     standingOrders.set(id, { kind: 'MOVE', unitId: id, to: { x, y } });
   }
@@ -335,6 +396,9 @@ $('restartBtn').addEventListener('click', () => {
   state = createInitialState(scenario, `seed-${Date.now()}`);
   selected.clear();
   standingOrders.clear();
+  playerMemory = emptyMemory();
+  enemyMemory = emptyMemory();
+  playerView = observePlayer();
   running = false;
   $('resultOverlay').style.display = 'none';
 });

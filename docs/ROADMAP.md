@@ -50,24 +50,26 @@ Delivered:
 **Deliberate constraint:** the UI must not reach into simulation internals. It renders state and
 sends commands. If it needs something the state does not expose, add it to the state.
 
+### Phase 7 — Fog of war and the information model ✅
+
+Observed-state projection per faction, closing GAP-01. Sighting range modified by terrain,
+strength as a bracketed estimate that tightens with proximity, sighting memory that goes stale
+and expires, obstacles known only to the side that placed them, and event filtering by
+witnessability. INV-23 and INV-24 are now enforced rather than merely documented.
+
+The UI renders exclusively from the observed state, so contact is genuinely lost and regained
+during play, and the Yuan never learn where the stake field is — they sail into it for the same
+reason the historical fleet did.
+
 ---
 
 ## Next
 
-### Phase 7 — Fog of war and the information model ← **start here**
+### Phase 8 — AI commander ← **start here**
 
-**Why now:** GAP-01. The scenario already declares `fogOfWar: true` and nothing implements it.
-That is a lie in the data, and it must be closed before an AI commander is written, or the AI
-will read ground truth and nobody will notice.
-
-Scope: an observed-state projection per faction; `KNOWN` / `ESTIMATED` / `UNKNOWN` enemy
-information; obstacle fields visible only to the faction that placed them (the data already
-records `knownToFaction`); enforcement of INV-23 and INV-24.
-
-### Phase 8 — AI commander
-
-Depends on Phase 7 — an AI that reads ground truth violates §32/§34 and would have to be
-rewritten afterwards.
+Phase 7 is done, so the constraint that makes this honest is now structural: the AI is handed an
+`ObservedState` and there is no route from it back to ground truth. The scripted placeholder in
+`main.ts` already reads its own observed view; replace it.
 
 Scope: objectives → operational plan → tactical orders; decisions made from the observed view
 only; a decision log so post-battle explanations reflect real decision data rather than plausible
