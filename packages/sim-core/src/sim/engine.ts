@@ -28,6 +28,7 @@ import {
   distance,
 } from '../domain/types.ts';
 import type { BattleScenario, ObstacleField } from '../scenario/scenario.ts';
+import { terrainAtPosition } from '../scenario/scenario.ts';
 import { evaluateTide, type TideState } from './tide.ts';
 import { createRng, restoreRng, type Rng } from './rng.ts';
 
@@ -36,7 +37,7 @@ import { createRng, restoreRng, type Rng } from './rng.ts';
  * that alters results (§53). Replays record it and refuse to run against a
  * different one (INV-18).
  */
-export const SIMULATION_VERSION = '0.3.0';
+export const SIMULATION_VERSION = '0.4.0';
 
 /** In-world minutes advanced per tick. */
 export const MINUTES_PER_TICK = 5;
@@ -144,6 +145,34 @@ const cellOf = (scenario: BattleScenario, p: Position): { x: number; y: number }
   y: Math.floor(p.y / scenario.terrain.cellSizeM),
 });
 
+/**
+ * Terrain multipliers for a unit at a position.
+ *
+ * Returns 1.0 for both when the scenario declares no terrain effects, so a
+ * scenario that treats terrain as scenery costs nothing and behaves exactly as
+ * before.
+ */
+function terrainFactors(
+  scenario: BattleScenario,
+  unit: Unit,
+  at: Position,
+): { movement: number; combat: number } {
+  const effects = scenario.mechanics.terrainEffects;
+  if (!effects) return { movement: 1, combat: 1 };
+
+  const cell = terrainAtPosition(scenario.terrain, at);
+  if (!cell) return { movement: 1, combat: 1 };
+
+  const effect = effects[cell.kind];
+  if (!effect) return { movement: 1, combat: 1 };
+
+  const override = effect.byUnitKind?.[unit.kind];
+  return {
+    movement: override?.movement ?? effect.movement,
+    combat: override?.combat ?? effect.combat,
+  };
+}
+
 const fieldCoversPosition = (
   scenario: BattleScenario,
   field: ObstacleField,
@@ -166,6 +195,9 @@ export function combatPower(
 ): number {
   if (!canAct(unit)) return 0;
 
+  // Ground affects how well a formation can fight on it (§19).
+  const terrain = terrainFactors(scenario, unit, unit.position).combat;
+
   const fatiguePenalty = 1 - unit.fatigue * TUNING.maxFatiguePenalty;
   const commander = scenario.commanders.find((c) => c.id === unit.commanderId);
   const commanderBonus =
@@ -181,7 +213,8 @@ export function combatPower(
     unit.cohesion *
     fatiguePenalty *
     commanderBonus *
-    immobilisedPenalty
+    immobilisedPenalty *
+    terrain
   );
 }
 
@@ -207,7 +240,11 @@ function applyMovement(
     const d = distance(u.position, target);
     if (d < 1) continue;
 
-    const speed = u.baseSpeedMPerHour * (1 - u.fatigue * 0.3);
+    // Terrain is sampled where the unit currently is, so a formation entering
+    // bad ground is slowed while it is in it rather than being penalised for
+    // its destination.
+    const ground = terrainFactors(ctx.scenario, u, u.position).movement;
+    const speed = u.baseSpeedMPerHour * (1 - u.fatigue * 0.3) * ground;
     const travel = Math.min(d, speed * HOURS_PER_TICK);
     const ratio = travel / d;
 

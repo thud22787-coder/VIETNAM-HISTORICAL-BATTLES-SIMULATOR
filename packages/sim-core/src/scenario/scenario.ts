@@ -45,6 +45,32 @@ export interface TerrainCell {
   readonly bedElevationM: number;
 }
 
+/**
+ * How a terrain kind affects units moving and fighting in it.
+ *
+ * Declared per scenario rather than hard-coded, because the same landform means
+ * different things in different periods and to different troops: marsh that
+ * merely slows infantry can destroy the mobility of cavalry, and what counts as
+ * broken ground depends on what is crossing it.
+ *
+ * All values are multipliers applied to the base figure. 1.0 is no effect.
+ */
+export interface TerrainEffect {
+  /** Movement speed multiplier. Below 1 is slower going. */
+  readonly movement: number;
+  /** Combat effectiveness multiplier for a unit fighting while in this cell. */
+  readonly combat: number;
+  /**
+   * Per-unit-kind overrides. Cavalry in marsh is the case this exists for:
+   * horses bogged in soft ground lose the mobility that is their whole
+   * advantage, which is precisely what happened at Chi Lăng.
+   */
+  readonly byUnitKind?: Partial<Record<UnitKind, { movement?: number; combat?: number }>>;
+}
+
+/** Terrain effects for a scenario, keyed by terrain kind. Absent kinds have no effect. */
+export type TerrainEffects = Partial<Record<TerrainKind, TerrainEffect>>;
+
 export interface TerrainMap {
   readonly widthCells: number;
   readonly heightCells: number;
@@ -209,6 +235,11 @@ export interface ScenarioMechanics {
   readonly obstacleFields?: readonly ObstacleField[];
   /** Whether units have limited information about the enemy (§17). */
   readonly fogOfWar?: boolean;
+  /**
+   * How terrain affects movement and combat (§19). Omit for scenarios where
+   * terrain is scenery rather than a mechanic.
+   */
+  readonly terrainEffects?: TerrainEffects;
 }
 
 /* ------------------------------------------------------------------ */

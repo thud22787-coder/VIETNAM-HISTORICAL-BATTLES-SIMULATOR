@@ -118,6 +118,83 @@ as the source themselves. Every claim below records what class of evidence suppo
   `confidence`, or declared a `SIMULATION_PARAMETER` (Master Prompt §87). Never rendered as
   "the historical army numbered N".
 
+
+---
+
+## S-006 — Chi Lăng pass: geography
+
+- **Class:** `SCIENTIFIC` / `ACADEMIC_SECONDARY` (modern geographic description)
+- **Confidence:** HIGH (for the modern landform), MEDIUM (as a 15th-century proxy)
+- **Claim:** Chi Lăng is a narrow, oval valley in Chi Lăng district, Lạng Sơn province, roughly
+  **20 km long and about 3 km at its widest**, enclosed by two limestone ranges — **Bảo Đài**
+  to one side and **Cai Kinh** (also called Mo Nhai) to the other. The **Thương River** runs
+  through it, flowing northeast to southwest. Mắt Quỷ ("Devil's Face") mountain stands about
+  100 m from the pass; Mã Yên mountain is the point most accounts associate with Liễu Thăng's
+  death.
+- **Why it matters:** unlike the troop figures, this is a real landform that can be measured and
+  visited. A 20 km defile narrowing to a few kilometres, walled by limestone karst, is the entire
+  tactical logic of the battle: a large column strung out along it cannot deploy, cannot see far,
+  and cannot easily turn around.
+- **Caveat (`UNCERTAIN`):** these are **modern** descriptions. River course, marsh extent and
+  vegetation in 1427 are not recoverable from the sources consulted. Treat the *shape and scale*
+  of the valley as reliable and any specific marsh position as a gameplay construction.
+- **Sources:** Chi Lăng district geographic descriptions; regional travel and heritage
+  documentation. **NOTE: these are tertiary descriptions of a real landform, not a survey.**
+  Research debt RD-05 tracks obtaining a proper topographic source.
+
+## S-007 — Battle of Chi Lăng, 1427: outline
+
+- **Class:** `ACADEMIC_SECONDARY`
+- **Confidence:** HIGH (that it happened and its outcome), MEDIUM (tactical detail)
+- **Claim:** In 1427 a Ming relief expedition marched to relieve Wang Tong (Vương Thông),
+  besieged at Đông Quan. The main column under **Liu Sheng (Liễu Thăng)** entered via Guangxi
+  and the Lạng Sơn approaches; a second under **Mu Sheng (Mộc Thạnh)** came via Yunnan.
+  Liu Sheng's column was ambushed at the Chi Lăng defile and effectively destroyed. Liu Sheng
+  was **killed at Mã Yên mountain**. Huang Fu was captured. On hearing of the disaster, Mu
+  Sheng's column withdrew. Wang Tong then sued for peace, ending ten years of war.
+- **Vietnamese commanders named:** Lê Lợi directing the campaign; Lê Sát, Lưu Nhân Chú,
+  Trần Lưu, Lê Lãnh, Đinh Liệt and Lê Thụ associated with the Chi Lăng action. **Trần Lưu** is
+  the commander most often named as leading the feigned withdrawal that drew the vanguard in.
+- **Sources:** Wikipedia's *Battle of Chi Lăng* and *Lam Sơn uprising*, citing
+  **Sun (2006)** and **Charney, _Southeast Asian Warfare 1300-1900_ (2004), pp. 176-177**, and
+  **Dương (1963)**. *The cited works have NOT been consulted directly* — research debt RD-06.
+
+## S-008 — Chi Lăng: tactical sequence
+
+- **Class:** `SUPPORTED_INTERPRETATION`
+- **Confidence:** MEDIUM
+- **Claim:** Vietnamese forces feigned defeat and withdrew, drawing the Ming vanguard forward
+  into the defile. Charging cavalry became **bogged in marshy ground near Đảo Mã Pha mountain**,
+  losing the mobility that was their advantage, and were then attacked from the flanking high
+  ground. The column behind was strung out along the pass and could not deploy to help.
+- **Caveat:** the *feigned retreat → bogged cavalry → flank ambush* structure is consistent
+  across accounts and is what Charney describes. The precise choreography, timings, and the exact
+  ground each contingent occupied are not recoverable at simulation resolution.
+
+## S-009 — Chi Lăng: force figures — DISPUTED
+
+- **Class:** `TERTIARY_UNVERIFIED` / `DISPUTED` — **DO NOT PRESENT AS FACT**
+- **Confidence:** LOW
+- **Conflict record:**
+
+| Claim | Figure | Attribution found |
+|---|---|---|
+| Ming relief expedition, total | ~115,200 (70,000 ordered Jan 1427 + 45,200 reinforcements Apr 1427) | Wikipedia *Lam Sơn uprising*, citing Dương (1963) |
+| Ming relief expedition, total | 150,000 (100,000 under Liễu Thăng + 50,000 under Mộc Thạnh) | Vietnam National Defence Journal |
+| Ming strength at Chi Lăng | "Unknown" | Wikipedia *Battle of Chi Lăng* infobox — explicitly unknown |
+| Vietnamese strength | "Unknown" | Wikipedia *Battle of Chi Lăng* infobox — explicitly unknown |
+| Ming casualties | 70,000–90,000, with 30,000 captured | Wikipedia, citing Sun (2006) p. 88 |
+| Killed with Liễu Thăng at Mã Yên | "over 10,000" | Vietnamese secondary accounts |
+
+- **Current interpretation:** the two totals for the relief expedition differ by about 30%, and
+  they describe the *whole* expedition rather than the force actually engaged in the defile.
+  Both Wikipedia infobox fields for the battle itself say **Unknown**, which is the most honest
+  statement available. Casualty figures of 70,000–90,000 against a force of ~115,000 should be
+  treated with the usual scepticism owed to pre-modern battle arithmetic.
+- **Action:** the scenario models force sizes as `UNKNOWN`, exactly as for Bạch Đằng. The
+  *asymmetry* (a large column against a smaller ambushing force) is treated as
+  `SUPPORTED_INTERPRETATION`; the numbers are `SIMULATION_PARAMETER`.
+
 ---
 
 ## Research debts (open)
@@ -131,3 +208,11 @@ These MUST be closed before any scenario claims `VERIFIED_FACT` status for the a
   1288 passages, and record what the chronicles actually say vs. what modern retellings add.
 - **RD-04** Find peer-reviewed paleo-tidal or paleo-geographic reconstruction of the 13th-century
   estuary, to replace the modern-tide proxy in S-002.
+- **RD-05** Obtain a topographic source for the Chi Lăng valley rather than travel-guide
+  descriptions. Needed to move S-006 above `TERTIARY_UNVERIFIED` for anything beyond the
+  valley's overall shape and scale.
+- **RD-06** Consult Charney, *Southeast Asian Warfare 1300-1900* (2004) and Sun (2006) directly
+  rather than through Wikipedia's citation of them. Both are cited for the tactical account and
+  the casualty figures in S-007 and S-009.
+- **RD-07** Determine whether any archaeological work has been done at Chi Lăng comparable to the
+  Bạch Đằng stake excavations. If so it would be the strongest evidence available for the site.

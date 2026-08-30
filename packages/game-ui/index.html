@@ -108,6 +108,9 @@
   .speculative .tag { background: #4a3a2d; color: #e0bb92; }
   .evidence { font-size: 11px; color: var(--dim); margin-top: 3px; margin-left: 2px; }
   .assumptions li { font-size: 12px; color: var(--dim); }
+  #battleList a { color: var(--accent); text-decoration: none; }
+  #battleList a:hover { text-decoration: underline; }
+  #battleList a.current { color: var(--text); font-weight: 600; text-decoration: none; }
   .ai-log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .ai-log li { font-size: 11px; color: var(--dim); margin-bottom: 4px; line-height: 1.4; }
   .note {
@@ -145,8 +148,8 @@
   <div id="sidebar">
     <div class="section">
       <h3>Forces</h3>
-      <div class="force"><span><span class="swatch sw-dv"></span>Đại Việt</span><span class="dim" id="forceDaiViet">—</span></div>
-      <div class="force"><span><span class="swatch sw-yn"></span>Yuan fleet</span><span class="dim" id="forceYuan">—</span></div>
+      <div class="force"><span><span class="swatch sw-dv"></span><span id="forceOwnLabel">—</span></span><span class="dim" id="forceDaiViet">—</span></div>
+      <div class="force"><span><span class="swatch sw-yn"></span><span id="forceEnemyLabel">—</span></span><span class="dim" id="forceYuan">—</span></div>
     </div>
     <div class="section">
       <h3>Selection</h3>
@@ -169,20 +172,17 @@
     <h3>Forces</h3>
     <ul id="briefForces"></ul>
 
-    <h3>You command Đại Việt</h3>
-    <p style="font-size:13px">
-      The channel has been prepared. Your light craft draw little water and can cross the
-      obstructions freely; the Yuan fleet cannot, once the tide falls far enough.
-      Watch the <strong>Channel</strong> readout — it tells you when the trap closes.
-    </p>
+    <h3>Other battles</h3>
+    <ul id="battleList"></ul>
+
+    <h3 id="briefCommandTitle">Your command</h3>
     <p style="font-size:13px" class="dim">
       Left-click selects, shift-click adds, right-click orders a move.
     </p>
 
-    <div class="note">
-      This is a simulation, not a reconstruction. Force sizes are unknown — no reliable
-      figures survive — and the map is schematic. What is grounded in evidence is the
-      stakes themselves and the tidal regime. See the assumptions listed after the battle.
+    <div class="note" id="briefNote">
+      This is a simulation, not a reconstruction. The assumptions it rests on are listed
+      after the battle.
     </div>
 
     <div class="actions"><button id="startBtn" class="active">Begin</button></div>

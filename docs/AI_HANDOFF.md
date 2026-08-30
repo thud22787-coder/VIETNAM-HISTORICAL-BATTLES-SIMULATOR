@@ -7,11 +7,118 @@ Most recent session first.
 
 ---
 
+## SESSION 4 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-10 complete. Two battles, terrain effects. Builds are next.
+
+### WHAT WAS DONE
+
+Added **Chi Lăng 1427** as the second battle, and with it closed GAP-02 (terrain effects).
+
+The point of this phase was not content. It was to test the §72 extensibility claim, which every
+previous handoff recorded as the project's largest untested assumption. The verdict is written up
+in [ADR-008](DECISIONS/ADR-008-extensibility-verdict.md).
+
+**Chi Lăng was chosen to be as unlike Bạch Đằng as possible** — land instead of naval, terrain
+instead of tide, cavalry instead of ships, 15th century instead of 13th. The roadmap had suggested
+Bạch Đằng 938, which shares the tide/stake mechanic; that would have been a much weaker test,
+mostly re-running code the first battle already exercised.
+
+### THE VERDICT, HONESTLY
+
+**Substantially confirmed, with one qualification.**
+
+The scenario file is data. No engine file names either battle, nothing branches on scenario
+identity, and a test now enforces both — verified against a planted violation. Fog of war, the AI
+commander, replay, save/load, what-if, analysis and invariant checking all worked on a
+structurally different battle with no modification.
+
+**But one general capability had to be added**: terrain affecting movement and combat did not
+exist, because the first battle never needed it. It was already documented as GAP-02. The
+addition is generic (`mechanics.terrainEffects`, declared as scenario data like `tide`), inert
+where unused (Bạch Đằng is unchanged, asserted by test), and closed a debt the project already
+owed. That is the difference between an architecture failing and an architecture having a hole
+someone had already written down.
+
+The honest expectation for battle three: mostly data, plus whatever general capability its
+mechanic needs. Adding capabilities is fine; adding battle-specific branches is not, and still
+has not happened.
+
+### TWO DEFECTS ONE BATTLE HAD HIDDEN
+
+1. **The scenario validator caught a unit placed off the map** (x=12100 on a 12000m map) the very
+   first time the new scenario ran. It was written for exactly this and had never fired on new
+   content before.
+2. **The AI had no concept of holding ground.** With nothing visible to attack, defenders stopped
+   wherever the last fight ended — so the Ming column simply walked past the abandoned defile.
+   Fixed generally: a defending force now returns to station.
+
+### SCENARIO TUNING — WHAT I LEARNED THE HARD WAY
+
+The first several attempts at balancing Chi Lăng were wrong in instructive ways:
+
+- Strengthening the ambush made Lam Sơn win regardless of play, which is not a game.
+- Sweeping Lam Sơn strength from 55% to 100% changed nothing, which was the clue that force size
+  was not the lever at all.
+- The actual problem was that **marsh spanned the entire valley floor**, so the column paid the
+  toll no matter what it did. A trap that cannot be routed around is not a trap.
+
+Leaving firm ground along the northern edge made the route choice the decision, which is the
+historical logic. Marsh routes cost the column badly; the firm lane gets it through but runs under
+the flanking high ground.
+
+I also had to rewrite one test: it compared final strength between lanes and was unstable, because
+units start spread across the valley and a straight march keeps most of them near their own
+latitude whatever destination is named. The property that is *actually* true and measurable is
+marsh exposure, so that is what it asserts now.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **224 tests passing** (212 sim-core, 12 game-ui), 0 failed
+- `npm run typecheck` → clean in both packages; `vite build` clean (56 KB)
+- Cavalry combat power measured at **528 on plain, 185 in marsh** — the mechanic is load-bearing,
+  not decorative
+- Both battles boot in the real shell under test, including the fallback for an unknown
+  `?battle=` parameter
+- The no-battle-branches guard was checked adversarially against a planted `scenario.id ===` test
+
+### BRANCH
+
+`feature/second-battle`, branched from `main`.
+
+### KNOWN RISKS
+
+- **No desktop or Android build has ever been attempted.** This is now the last wholly unverified
+  area of the project.
+- Cross-platform determinism is designed for (uint32 arithmetic) but unchecked on a device.
+- The AI still does not read the tide (AI_COMMANDER_CONTRACT §6).
+- New: TD-05 — visibility concealment and terrain effects are declared in two separate places.
+
+### NEXT STEPS
+
+1. **Desktop and Android builds** (Phase 11). Electron and Capacitor; the Android SDK is present
+   on this machine but unconfigured (`ANDROID_HOME` unset).
+2. **AI tide awareness**.
+3. A third battle, if more content is wanted.
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **No engine file may name a battle or branch on scenario identity.** The whole §72 argument
+  rests on this and a test enforces it.
+- **Terrain effects must stay scenario-declared.** A hard-coded terrain table would reintroduce
+  exactly the coupling the mechanic was designed to avoid.
+
+---
+
 ## SESSION 3 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-8 complete. AI commander built; a second battle is next.
+**PHASE AT THE TIME:** Phases 0-8 complete. AI commander built.
 
 ### WHAT WAS DONE
 

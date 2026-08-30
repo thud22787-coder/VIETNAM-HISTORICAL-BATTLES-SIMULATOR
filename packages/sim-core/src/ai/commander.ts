@@ -93,6 +93,16 @@ export interface AiState {
   /** Everything the commander has decided, in order. */
   readonly decisions: readonly Decision[];
   /**
+   * Where each unit began the battle.
+   *
+   * A defending force that has driven off what it could see must go back to the
+   * ground it is holding, not stand around where the last fight happened. At
+   * Chi Lăng that distinction decides the battle: ambushers who wander down the
+   * valley after a broken vanguard leave the defile open for the column behind
+   * to walk through.
+   */
+  readonly stations: Readonly<Record<string, Position>>;
+  /**
    * Positions where the commander has observed vessels inexplicably stop.
    * This is the AI *inferring* a hazard it cannot see — the closest it can
    * legitimately get to knowing about the stake field.
@@ -103,6 +113,7 @@ export interface AiState {
 
 export const initialAiState = (): AiState => ({
   decisions: [],
+  stations: {},
   suspectedHazards: [],
   posture: 'RUN',
 });
@@ -364,6 +375,7 @@ function tacticalOrders(
   strategy: Strategy,
   posture: Posture,
   hazards: readonly Position[],
+  stations: Readonly<Record<string, Position>>,
 ): Command[] {
   const commands: Command[] = [];
   const active = observed.own.filter(canAct);
@@ -389,6 +401,23 @@ function tacticalOrders(
           unitId: unit.id,
           to: avoidHazards(unit.position, target.position, hazards),
         });
+        continue;
+      }
+
+      // Nothing worth attacking in sight. A force whose objective is to deny
+      // ground returns to the ground it is denying rather than idling where the
+      // last fight ended.
+      const station = stations[unit.id];
+      if (station && strategy.kind !== 'BREAK_OUT') {
+        if (distance(unit.position, station) > AI_TUNING.arrivalToleranceM) {
+          commands.push({
+            kind: 'MOVE',
+            unitId: unit.id,
+            to: avoidHazards(unit.position, station, hazards),
+          });
+        } else {
+          commands.push({ kind: 'HOLD', unitId: unit.id });
+        }
         continue;
       }
     }
@@ -472,6 +501,14 @@ export function decide(
   const decisions: Decision[] = [...ai.decisions];
   const tick = observed.tick;
 
+  // Record where each unit was first seen under this commander. Done here
+  // rather than at construction so the AI needs no separate initialisation
+  // step and can be attached to a battle already in progress.
+  const stations: Record<string, Position> = { ...ai.stations };
+  for (const u of observed.own) {
+    if (!(u.id in stations)) stations[u.id] = u.position;
+  }
+
   const record = (
     layer: DecisionLayer,
     summary: string,
@@ -528,7 +565,7 @@ export function decide(
 
   /* --- Layer 3: tactical --- */
 
-  const commands = tacticalOrders(observed, strategy, posture, hazards);
+  const commands = tacticalOrders(observed, strategy, posture, hazards, stations);
 
   if (commands.length > 0 && (posture !== ai.posture || discovered.length > 0)) {
     record(
@@ -545,7 +582,7 @@ export function decide(
 
   return {
     commands,
-    state: { decisions, suspectedHazards: hazards, posture },
+    state: { decisions, stations, suspectedHazards: hazards, posture },
   };
 }
 

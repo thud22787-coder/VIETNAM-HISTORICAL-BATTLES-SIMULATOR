@@ -24,7 +24,17 @@ we are.
 
 See [docs/HISTORICAL_ACCURACY_CONTRACT.md](docs/HISTORICAL_ACCURACY_CONTRACT.md).
 
-## The first battle: Bạch Đằng, 1288
+## The battles
+
+**Bạch Đằng, 1288** — a naval trap in a tidal estuary, decided by timing against the ebb.
+**Chi Lăng, 1427** — a land ambush in a mountain defile, decided by which ground the column
+crosses.
+
+They were chosen to be structurally unalike, because the second battle's real job was to test
+whether the architecture could take one. See
+[ADR-008](docs/DECISIONS/ADR-008-extensibility-verdict.md).
+
+### Why Bạch Đằng 1288 came first
 
 The vertical slice is the 1288 battle, **not** the more famous 938 one. That choice was driven
 by evidence, and the reasoning is worth reading:
@@ -43,7 +53,7 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 194 tests
+npm test          # 224 tests
 npm run typecheck
 
 npm run dev -w @vhbs/game-ui   # play it at http://localhost:5173
@@ -84,6 +94,7 @@ Start here if you are picking this project up:
 | [HISTORICAL_SOURCES.md](docs/HISTORICAL_SOURCES.md) | Source register and research debts |
 | [GAME_STATE_INVARIANTS.md](docs/GAME_STATE_INVARIANTS.md) | Rules the state must always satisfy |
 | [AI_COMMANDER_CONTRACT.md](docs/AI_COMMANDER_CONTRACT.md) | What the AI may and may not know |
+| [ADR-008](docs/DECISIONS/ADR-008-extensibility-verdict.md) | What the second battle cost |
 | [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | What is tested and why |
 | [ROADMAP.md](docs/ROADMAP.md) | Where this goes next |
 | [KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md) | Bugs, limitations and technical debt |

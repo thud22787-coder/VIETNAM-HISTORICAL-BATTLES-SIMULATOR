@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/ai-commander`)
+**Last verified commit:** see `git log` (branch `feature/second-battle`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,12 +18,13 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-8 complete (foundation through the AI commander). Next is a second battle, which is
-the first real test of the §72 extensibility claim. See [ROADMAP.md](ROADMAP.md).
+Phases 0-10 complete (foundation through a second battle and terrain effects). Next is
+desktop/Android productisation, which is the last wholly unverified area.
+See [ROADMAP.md](ROADMAP.md).
 
 ## COMPLETED
 
-Verified by `npm test` (194 tests across both packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (224 tests across both packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -67,6 +68,10 @@ Verified by `npm test` (194 tests across both packages, all passing) and `npm ru
   in the UI.
 - **ESCAPE victory condition** — for a force whose objective is to leave rather than to win a
   fight.
+- **Terrain effects** — scenario-declared movement and combat multipliers per terrain kind, with
+  per-unit-kind overrides (closing GAP-02).
+- **Chi Lăng 1427** — the second battle: a land ambush in a mountain defile, structurally unlike
+  the first. Its purpose was to test §72; the verdict is in ADR-008.
 - **Playable browser UI** — canvas battlefield with tide-aware terrain shading, unit selection
   and move orders, play/pause/speed, live tide and "channel closes in…" countdown, battle log,
   and a post-battle screen showing findings with their OBSERVED / INFERRED / SPECULATIVE labels
@@ -80,10 +85,6 @@ Nothing is half-finished. The tree is clean and all tests pass.
 
 - **Messenger delay and misinformation** (§18). The architecture allows them — sighting memory is
   per-commander and timestamped — but neither is modelled.
-- **Terrain effects on movement and combat.** Terrain is modelled in the scenario and used for
-  obstacle placement, but does not yet modify movement speed, visibility or defence.
-- **Second battle.** The architecture claims adding one is data + config (§72). That claim is
-  **untested** until a second battle exists.
 - **Desktop and Android builds.** Toolchain chosen (Electron + Capacitor), nothing built.
   Android SDK is present on the dev machine; no build has been attempted.
 - **Campaign system** (§36-37).
@@ -114,10 +115,10 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   186 tests — all passing
-game-ui      8 tests — all passing
+sim-core   212 tests — all passing
+game-ui     12 tests — all passing
 tsc --noEmit — clean in both packages
-vite build  — clean (46 KB bundle)
+vite build  — clean (56 KB bundle)
 ```
 
 Covered: epistemic model, RNG determinism, tide physics, invariants, baseline immutability,
@@ -148,12 +149,13 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **A second battle** (Phase 9). This is now the biggest untested assumption in the project:
-   the architecture claims adding a battle is data plus config, and only a second battle can
-   verify it.
-2. **Terrain effects** (GAP-02), so the marsh and tidal flats stop being decorative.
-3. **AI tide awareness** — the Yuan commander does not understand that waiting makes its position
+1. **Desktop and Android builds** (Phase 11). This is now the last wholly unverified area: the
+   toolchain is chosen on paper and no build has ever been attempted. Cross-platform determinism
+   is designed for (uint32 arithmetic) but never checked on a device.
+2. **AI tide awareness** — the Yuan commander does not understand that waiting makes its position
    worse, which a competent sailor would have known. See AI_COMMANDER_CONTRACT §6.
+3. **A third battle**, if more content is wanted. ADR-008 sets the honest expectation: mostly
+   data, plus whatever general capability its mechanic needs.
 
 ## DO NOT BREAK
 
@@ -174,3 +176,5 @@ In dependency order:
 - **Objectives must match their own descriptions and be attainable.** Tests assert both, because
   both failed once: the Yuan objective said "break out to sea" while rewarding attrition, and its
   escape threshold was briefly set to a figure no amount of good play could reach.
+- **No engine file may name a battle or branch on scenario identity.** A test enforces this and
+  was verified against a planted violation. It is what the whole §72 argument rests on.

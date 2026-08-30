@@ -25,6 +25,7 @@ export * from './domain/types.ts';
 export * from './scenario/scenario.ts';
 export * from './scenario/validate.ts';
 export { BACH_DANG_1288, DAI_VIET, YUAN } from './scenario/battles/bach-dang-1288.ts';
+export { CHI_LANG_1427, DAI_VIET_LAMSON, MING } from './scenario/battles/chi-lang-1427.ts';
 
 /* Simulation */
 export * from './sim/rng.ts';

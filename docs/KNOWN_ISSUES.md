@@ -19,7 +19,7 @@ surface; the unimplemented surface cannot have bugs yet.)
 ## Gaps between documentation and code
 
 These are the dangerous ones, because a future reader could trust the wrong side.
-GAP-01 is retained below, closed, as a record of what the failure looked like.
+GAP-01 and GAP-02 are retained below, closed, as a record of what the failures looked like.
 
 ### GAP-01 — `fogOfWar` declared but not implemented — **CLOSED**
 
@@ -39,15 +39,21 @@ Left deliberately: **the human player's own units are fully known to them**, whi
 they report in. Messenger delay and misinformation (§18) are not modelled; the architecture
 allows them (memory is already per-commander and timestamped) but nothing needs them yet.
 
-### GAP-02 — Terrain does not affect movement or combat
+### GAP-02 — Terrain does not affect movement or combat — **CLOSED**
 
-**Severity:** medium
+Closed by `mechanics.terrainEffects`: a scenario-declared table mapping terrain kinds to movement
+and combat multipliers, with optional per-unit-kind overrides. Nothing in it is battle-specific.
 
-`TerrainMap` is fully modelled and populated, and terrain is used to place obstacle fields. But
-movement speed, visibility, defensive bonus and morale are **not** modified by terrain, despite
-the terrain contract intent in [ARCHITECTURE.md](ARCHITECTURE.md) and §19.
+It was closed because Chi Lăng needed it — a defile ambush whose decisive mechanic is cavalry
+being crippled in marsh cannot be expressed without it. See
+[ADR-008](DECISIONS/ADR-008-extensibility-verdict.md).
 
-**Impact:** the marsh, forest and tidal flats in the Bạch Đằng map are currently decorative.
+Still not modelled: terrain affecting **visibility** or **morale**. The observation layer applies
+its own concealment multipliers (`VISIBILITY.concealment`) separately from
+`mechanics.terrainEffects`, which is a small duplication worth unifying if a third battle needs
+scenario-specific visibility rules.
+
+Bạch Đằng declares no terrain effects and is unchanged; a test asserts it.
 
 ---
 
@@ -88,6 +94,19 @@ place.
 **Proposed fix:** keep the TS contract as the source of truth, add a JSON loader that validates
 against it. Not urgent until external authoring matters.
 
+### TD-05 — Visibility and terrain effects are declared in two places
+
+`VISIBILITY.concealment` in the observation layer and `mechanics.terrainEffects` in the scenario
+both describe how terrain modifies things, but only the latter is scenario-configurable.
+
+**Why:** fog of war landed before terrain effects existed, so it grew its own table.
+
+**Impact:** a scenario cannot currently say "forest conceals unusually well here". Low priority
+until a battle needs it.
+
+**Proposed fix:** move concealment into `TerrainEffect` as a third multiplier and have the
+observation layer read it, falling back to the current defaults.
+
 ### TD-04 — Analysis findings are rule-based
 
 `analyseBattle` produces findings from a fixed set of rules. It will not notice a novel cause.
@@ -122,5 +141,8 @@ Until RD-01 and RD-04 close, stake **positions** and absolute depths in the scen
   paper. The Android SDK is present on the development machine but unconfigured
   (`ANDROID_HOME` unset).
 - **Performance is unprofiled.** The current battle is 14 units; no measurement exists at scale.
-- **The §72 extensibility claim is untested.** "Adding a battle is data + config" is an
-  architectural intention that only a second battle can verify.
+- **The §72 extensibility claim is now evidence-backed**, not merely intended — see
+  [ADR-008](DECISIONS/ADR-008-extensibility-verdict.md). Two battles exist with entirely
+  different decisive mechanics, no engine file names either, and a test enforces that. The
+  qualification recorded there: one *general* capability (terrain effects) had to be added,
+  because the first battle never needed it.

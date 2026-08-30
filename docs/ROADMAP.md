@@ -73,28 +73,27 @@ See [AI_COMMANDER_CONTRACT.md](AI_COMMANDER_CONTRACT.md).
 
 ---
 
+### Phase 9 — Second battle ✅
+
+**Chi Lăng 1427** — a land ambush in a mountain defile, chosen deliberately to be as unlike the
+first battle as possible so that it tested the architecture rather than re-running it. The
+verdict on §72 is written up in
+[ADR-008](DECISIONS/ADR-008-extensibility-verdict.md): substantially confirmed, with the honest
+qualification that one general capability (terrain effects, the already-documented GAP-02) had to
+be added because the first battle never needed it.
+
+Building it also exposed two real defects one battle had hidden: the scenario validator caught a
+unit placed off the map, and the AI turned out to have no concept of holding ground.
+
+### Phase 10 — Terrain effects ✅
+
+Closed as part of Phase 9. `mechanics.terrainEffects` maps terrain kinds to movement and combat
+multipliers with per-unit-kind overrides. Visibility and morale effects are still outstanding —
+see TD-05 in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+
+---
+
 ## Next
-
-### Phase 9 — Second battle ← **start here**
-
-Scope: objectives → operational plan → tactical orders; decisions made from the observed view
-only; a decision log so post-battle explanations reflect real decision data rather than plausible
-narrative (§35).
-
-**Why it matters:** this is the test of §72. The architecture *claims* a new battle is data plus
-config. That claim is currently unverified.
-
-Recommended: **Bạch Đằng 938**, because it shares the tide/stake mechanic family and so directly
-exercises the extensibility claim — and because it lets us present the 938 story honestly, with
-its unsourced numbers labelled, alongside the better-evidenced 1288.
-
-A land battle (Chi Lăng, Ngọc Hồi–Đống Đa) would be the stronger test of the terrain system, and
-should follow.
-
-### Phase 10 — Terrain effects
-
-Close GAP-02: movement cost, visibility, defensive modifiers, morale effects. Currently the
-marsh and forest are decorative.
 
 ### Phase 11 — Desktop and Android builds
 
