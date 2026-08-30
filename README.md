@@ -5,9 +5,9 @@ A historical battle simulation and strategy platform for Vietnamese history.
 Play a historical battle, command the forces, watch the simulation resolve, see why it turned
 out that way — then change a variable and find out what the model does differently.
 
-> **Status: early but playable.** Two battles, a browser UI, and a desktop app that launches and
-> is tested. The Android project builds; no physical device has been tested, and touch input is
-> not yet designed. See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for an honest account.
+> **Status: early but playable.** Two battles, a browser UI that works with mouse or touch, and a
+> desktop app that launches and is tested. The Android project builds to a valid APK; no physical
+> device has been tested. See [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for an honest account.
 
 ---
 
@@ -53,7 +53,7 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 231 tests
+npm test          # 262 tests
 npm run typecheck
 
 npm run dev   -w @vhbs/game-ui   # play in a browser at http://localhost:5173

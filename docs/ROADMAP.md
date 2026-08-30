@@ -111,14 +111,26 @@ same Chromium engine on desktop.
 
 ## Next
 
-### Phase 12 — Touch input and mobile UX ← **start here**
+### Phase 12 — Touch input and mobile UX ✅
 
-§77: mobile is not a smaller desktop. Tap to select, tap destination to order, drag selection,
-contextual command menu, pinch zoom and pan, and a pause control that works under a thumb.
+Input rewritten around Pointer Events, so mouse, touch and stylus arrive on one code path.
+The interaction model was redesigned rather than patched: a finger has no right button and no
+shift key, so **tapping empty ground orders a move** on every platform, drag box-selects, and
+long-press toggles a unit in the selection.
 
-The simulation needs no changes for this — it already takes commands from any source.
+Layout is genuinely different on a narrow screen rather than merely smaller — the controls move
+*below* the battlefield, within thumb reach, and every button meets the 44px touch minimum. Four
+browser tests measure the rendered geometry to prove it.
 
-### Phase 13 — Campaign system
+Not done: **pinch zoom and pan**. Both battles are designed to fit one screen, so a camera would
+add state and a class of bugs for no gameplay gain today. `Viewport` already carries a scale, so
+adding one later touches the input module and the renderer, not the simulation.
+
+---
+
+## Next
+
+### Phase 13 — Campaign system ← **start here**
 
 Battles linked, with results carrying forward. Historical and player-altered campaign lines kept
 distinct (§37).

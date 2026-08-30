@@ -36,7 +36,8 @@ import {
   type ObservedState,
   type SightingMemory,
 } from '@vhbs/sim-core';
-import { render, unitAt, type Viewport } from './render.ts';
+import { render, type Viewport } from './render.ts';
+import { attachInput, type DragBox, type InputIntent } from './input.ts';
 
 /**
  * Available battles.
@@ -92,6 +93,13 @@ let enemyAI: AiState = initialAiState();
 
 /** The player's current view. Everything the UI renders comes from this. */
 let playerView: ObservedState = observePlayer();
+
+/** Selection box currently being dragged, if any. Purely visual. */
+let dragBox: DragBox | null = null;
+
+/** Transient feedback text, cleared on a timer. */
+let hint = '';
+let hintTimer: ReturnType<typeof setTimeout> | null = null;
 
 function observePlayer(): ObservedState {
   const result = observe(
@@ -221,7 +229,7 @@ function currentTide() {
 
 function draw(): void {
   const tide = currentTide();
-  render(ctx, { observed: playerView, scenario, tide, selected, viewport });
+  render(ctx, { observed: playerView, scenario, tide, selected, viewport, dragBox });
   updatePanels(tide);
 }
 
@@ -308,9 +316,13 @@ function updatePanels(tide: ReturnType<typeof currentTide>): void {
     .map((id) => playerView.own.find((u) => u.id === id))
     .filter((u): u is Unit => u !== undefined);
 
+  $('hint').textContent = hint;
+  $('hint').style.opacity = hint ? '1' : '0';
+
   $('selection').innerHTML =
     sel.length === 0
-      ? '<span class="dim">Click a unit to select. Shift-click adds. Right-click to order a move.</span>'
+      ? '<span class="dim">Tap a unit to select it, then tap the ground to order a move. ' +
+        'Drag to box-select; press and hold a unit to add it.</span>'
       : sel
           .map(
             (u) => `<div class="unit-row">
@@ -387,41 +399,81 @@ function showResult(): void {
 /* Input                                                               */
 /* ------------------------------------------------------------------ */
 
-const toWorld = (ev: MouseEvent): { x: number; y: number } => {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: (ev.clientX - rect.left) * viewport.scale,
-    y: (ev.clientY - rect.top) * viewport.scale,
-  };
+/**
+ * Input.
+ *
+ * All of it goes through `attachInput`, which speaks Pointer Events so mouse
+ * and touch arrive on one code path. See src/input.ts for why the interaction
+ * model is what it is — briefly: a finger has no right button and no shift key,
+ * so tapping empty ground is the primary way to order a move on every platform
+ * rather than a mobile-only branch.
+ */
+
+const showHint = (text: string): void => {
+  hint = text;
+  if (hintTimer) clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => {
+    hint = '';
+  }, 1400);
 };
 
-canvas.addEventListener('mousedown', (ev) => {
-  if (ev.button !== 0) return;
-  const { x, y } = toWorld(ev);
-  const hit = unitAt(playerView.own, x, y, viewport.scale * 14);
+function applyIntent(intent: InputIntent): void {
+  switch (intent.kind) {
+    case 'SELECT_ONE':
+      selected = new Set([intent.unitId]);
+      break;
 
-  if (!hit) {
-    if (!ev.shiftKey) selected.clear();
-    return;
+    case 'TOGGLE_ONE':
+      if (selected.has(intent.unitId)) selected.delete(intent.unitId);
+      else selected.add(intent.unitId);
+      break;
+
+    case 'SELECT_BOX':
+      selected = new Set(intent.unitIds);
+      if (intent.unitIds.length > 0) {
+        showHint(`${intent.unitIds.length} selected`);
+      }
+      break;
+
+    case 'ORDER_MOVE': {
+      let ordered = 0;
+      for (const id of selected) {
+        const unit = playerView.own.find((u) => u.id === id);
+        if (!unit || !canAct(unit)) continue;
+        standingOrders.set(id, { kind: 'MOVE', unitId: id, to: intent.to });
+        ordered++;
+      }
+      if (ordered > 0) showHint(ordered === 1 ? 'move ordered' : `${ordered} units ordered`);
+      break;
+    }
+
+    case 'CLEAR_SELECTION':
+      selected.clear();
+      break;
   }
-  if (ev.shiftKey) {
-    selected.has(hit.id) ? selected.delete(hit.id) : selected.add(hit.id);
-  } else {
-    selected = new Set([hit.id]);
-  }
+}
+
+const detachInput = attachInput(canvas, {
+  toWorld: (clientX, clientY) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) * viewport.scale,
+      y: (clientY - rect.top) * viewport.scale,
+    };
+  },
+  scale: () => viewport.scale,
+  ownUnits: () => playerView.own.filter((u) => canAct(u)),
+  hasSelection: () => selected.size > 0,
+  dispatch: applyIntent,
+  onDragBox: (box) => {
+    dragBox = box;
+  },
+  onHint: showHint,
 });
 
-canvas.addEventListener('contextmenu', (ev) => {
-  ev.preventDefault();
-  if (selected.size === 0) return;
-  const { x, y } = toWorld(ev);
-
-  for (const id of selected) {
-    const unit = playerView.own.find((u) => u.id === id);
-    if (!unit || !canAct(unit)) continue;
-    standingOrders.set(id, { kind: 'MOVE', unitId: id, to: { x, y } });
-  }
-});
+// Nothing tears the shell down today, but holding the handle means a future
+// scenario switch that rebuilds the canvas has an obvious place to detach.
+void detachInput;
 
 $('playBtn').addEventListener('click', () => {
   if (state.outcome.kind !== 'ONGOING') return;
@@ -449,6 +501,8 @@ $('restartBtn').addEventListener('click', () => {
   playerMemory = emptyMemory();
   enemyMemory = emptyMemory();
   enemyAI = initialAiState();
+  dragBox = null;
+  hint = '';
   playerView = observePlayer();
   running = false;
   $('resultOverlay').style.display = 'none';
