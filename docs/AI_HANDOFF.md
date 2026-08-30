@@ -7,12 +7,105 @@ Most recent session first.
 
 ---
 
+## SESSION 9 — 2026-08-30
+
+**AI / MODEL:** Claude Opus 5 (Claude Code)
+
+**CURRENT PHASE:** Phases 0-14 complete. **Every roadmap phase is now built.** See ROADMAP.md for
+the honest list of what remains.
+
+### WHAT WAS DONE
+
+Added **Tốt Động – Chúc Động (1426)** as the third battle, and **LAM_SON_1426** as the first
+genuinely operational campaign. Together they close the gap the last handoff recorded: carry-
+forward existed but only a synthetic fixture exercised it.
+
+**Why this battle.** It is the one that *causes* Chi Lăng. Wang Tong is beaten in the delta →
+withdraws to Đông Quan → is besieged → the Ming send Liễu Thăng's relief column → that column
+marches into Chi Lăng. Eleven months, one war, one leader, a causal chain. That is what makes
+carrying losses forward defensible here and indefensible in `RESISTANCE`, whose battles are 139
+years apart.
+
+### ADR-008'S PREDICTION HELD
+
+The third battle cost **no engine change at all**. Its mechanic — a heavy column bogged in worked
+paddy while local levies move freely — is Chi Lăng's marsh with different numbers in
+`mechanics.terrainEffects`. That is the second confirmation of §72, and this time with nothing
+owed.
+
+### THE BEST-SOURCED BATTLE IN THE PROJECT
+
+Unusually, **both traditions' figures survive and both are attributed** (S-012): Ming strength
+54,000 (Ming Shi-lu, via Geoff Wade) against 100,000 (Vietnamese sources); casualties 20–30,000
+against 50,000. Roughly a factor of two apart, running in the direction such disagreements usually
+do — the victor's tradition reports a larger enemy and heavier enemy losses.
+
+That is carried through as `DISPUTED` with both candidates and their attributions intact. It is
+the clearest teaching case the project has for §106.
+
+### TWO THINGS THE TOOLING CAUGHT
+
+Both were my errors, and both were caught by machinery built in earlier sessions:
+
+1. **The scenario validator** rejected Lam Sơn strength typed `EXACT` while marked `UNCERTAIN` —
+   a contradiction. A figure reported once by the losing side's own record is an estimate,
+   whatever precision it is written with. Changed to `ESTIMATED` with a wide ±.
+2. **A campaign test** caught carry-forward applying to *both* sides. Both battles use the faction
+   id `lam-son`, so an unscoped rule silently carried Lam Sơn losses into Chi Lăng — the opposite
+   of what the campaign's own notes claimed. The prose and the behaviour disagreed and the
+   behaviour was wrong. `CarryForward.appliesTo` now scopes it; measured, the Ming carry at ×0.76
+   after a 40% loss while Lam Sơn stay at ×1.00.
+
+### WHAT WAS VERIFIED
+
+- `npm test` → **328 tests passing** across four packages, **zero skipped**
+- Both campaigns run end to end. `LAM_SON_1426` produced a historical result with the Ming
+  arriving at Chi Lăng at ×0.80 after ending Tốt Động at 49% strength.
+- Carry-forward scales smoothly (0.96 → 0.88 → 0.80 → 0.72) and clamps at the 0.70 floor
+- All three battles boot in the UI shell under test
+- The fingerprint passed unchanged, confirming the new battle did not perturb existing results —
+  no `SIMULATION_VERSION` bump needed. The APK was stale again and was rebuilt.
+
+### BRANCH
+
+`feature/operational-campaign`, branched from `main`.
+
+### KNOWN RISKS
+
+- **Still no physical Android device.** Now the last wholly unverified platform claim.
+- **Sieges are not modelled.** `LAM_SON_1426` narrates the siege of Đông Quan between its two
+  battles because it is the causal join, but cannot play it.
+- The AI has no model of its opponent.
+- TD-07: nothing drives input all the way into the simulation.
+- Performance is unprofiled; battles are 14–17 units.
+
+### NEXT STEPS
+
+There is no unbuilt phase. In rough order of value:
+
+1. **A physical Android device pass.**
+2. **A siege scenario**, which would need a genuinely new mechanic rather than data.
+3. **Research debts**, especially RD-08 (the Ming Shi-lu via Geoff Wade) — it is the source behind
+   several DISPUTED figures and is currently reached only through Wikipedia's citation of it.
+4. **AI opponent modelling.**
+
+### DO NOT CHANGE
+
+Everything in the earlier sessions still applies, plus:
+
+- **Carry-forward must stay faction-scoped where the history is asymmetric.** Lam Sơn were
+  reinforcing through 1427; carrying their losses forward gets the campaign backwards.
+- **Tốt Động's figures must stay DISPUTED.** Both traditions are attributed and they disagree by
+  a factor of two. Reconciling them into one number would destroy the most useful thing about the
+  scenario.
+
+---
+
 ## SESSION 8 — 2026-08-30
 
 **AI / MODEL:** Claude Opus 5 (Claude Code)
 
-**CURRENT PHASE:** Phases 0-13 complete. Campaign system done; a third battle or an operational
-campaign is next.
+**PHASE AT THE TIME:** Phases 0-13 complete. Campaign system done.
 
 ### WHAT WAS DONE
 

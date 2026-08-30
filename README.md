@@ -27,8 +27,13 @@ See [docs/HISTORICAL_ACCURACY_CONTRACT.md](docs/HISTORICAL_ACCURACY_CONTRACT.md)
 ## The battles
 
 **Bạch Đằng, 1288** — a naval trap in a tidal estuary, decided by timing against the ebb.
+**Tốt Động – Chúc Động, 1426** — an ambush in flooded rice paddy, decided by whether the column
+can be talked off the road.
 **Chi Lăng, 1427** — a land ambush in a mountain defile, decided by which ground the column
 crosses.
+
+The last two form a playable **operational campaign**: winning the first is why the relief column
+marches into the second.
 
 They were chosen to be structurally unalike, because the second battle's real job was to test
 whether the architecture could take one. See
@@ -53,7 +58,7 @@ evidence for, rather than by troop counts, which we do not.
 
 ```bash
 npm install
-npm test          # 294 tests
+npm test          # 328 tests
 npm run typecheck
 
 npm run dev   -w @vhbs/game-ui   # play in a browser at http://localhost:5173

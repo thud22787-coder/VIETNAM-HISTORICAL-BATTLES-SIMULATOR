@@ -26,6 +26,7 @@ export * from './scenario/scenario.ts';
 export * from './scenario/validate.ts';
 export { BACH_DANG_1288, DAI_VIET, YUAN } from './scenario/battles/bach-dang-1288.ts';
 export { CHI_LANG_1427, DAI_VIET_LAMSON, MING } from './scenario/battles/chi-lang-1427.ts';
+export { TOT_DONG_1426, LAM_SON, MING_FIELD } from './scenario/battles/tot-dong-1426.ts';
 
 /* Simulation */
 export * from './sim/rng.ts';
@@ -40,6 +41,7 @@ export * from './state/observed.ts';
 /* Campaign */
 export * from './campaign/campaign.ts';
 export { RESISTANCE_CAMPAIGN } from './campaign/campaigns/resistance.ts';
+export { LAM_SON_CAMPAIGN } from './campaign/campaigns/lam-son.ts';
 
 /* AI */
 export * from './ai/commander.ts';

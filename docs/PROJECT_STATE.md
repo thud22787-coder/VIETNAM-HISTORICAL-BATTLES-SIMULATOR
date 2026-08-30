@@ -1,7 +1,7 @@
 # PROJECT STATE
 
 **Last updated:** 2026-08-30
-**Last verified commit:** see `git log` (branch `feature/campaign`)
+**Last verified commit:** see `git log` (branch `feature/operational-campaign`)
 
 Everything below was verified by running it, not by remembering it. Where something is untested
 or unbuilt, it says so plainly (§64).
@@ -18,12 +18,12 @@ Vietnam Historical Battles Simulator — a historical battle simulation and stra
 
 ## CURRENT PHASE
 
-Phases 0-13 complete (foundation through the campaign system). Next is a third battle or an
-operational campaign. See [ROADMAP.md](ROADMAP.md).
+Phases 0-14 complete. Three battles, two campaigns, all roadmap phases built.
+See [ROADMAP.md](ROADMAP.md) for the honest list of what is left.
 
 ## COMPLETED
 
-Verified by `npm test` (294 tests across four packages, all passing) and `npm run typecheck` (clean under
+Verified by `npm test` (328 tests across four packages, all passing) and `npm run typecheck` (clean under
 `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`).
 
 - **Historical accuracy layer** — `EpistemicStatus` ladder, `UncertainQuantity` (EXACT /
@@ -80,6 +80,14 @@ Verified by `npm test` (294 tests across four packages, all passing) and `npm ru
   asserts the game actually renders.
 - **Android shell (Capacitor)** — native project generates; packages the *same* `game-ui/dist`
   bytes the desktop shell loads, so all targets ship identical application code.
+- **Tốt Động – Chúc Động 1426** — the third battle, and the project's best-documented
+  historiographical disagreement: both traditions' figures survive and both are attributed, so
+  they are carried as `DISPUTED` rather than reconciled. Cost no engine change, as ADR-008
+  predicted.
+- **Operational campaign (`LAM_SON_1426`)** — Tốt Động → Chi Lăng, eleven months apart with a
+  causal link, so carry-forward is finally exercised against real history rather than a synthetic
+  fixture. Carry-forward is now faction-scoped, because a test caught it silently applying to both
+  sides when the campaign's own notes said otherwise.
 - **Campaign system** — battles linked, with optional carry-forward of losses. Divergence from
   the historical record is one-way and permanent: a campaign that departs from it is relabelled
   `WHAT-IF CAMPAIGN` for good, with no API to reset. The shipped `RESISTANCE` campaign is
@@ -143,8 +151,8 @@ branch. See [ARCHITECTURE.md](ARCHITECTURE.md).
 ## CURRENT TEST STATUS
 
 ```
-sim-core   248 tests — all passing
-game-ui     42 tests — all passing   (gestures, browser determinism, real layout geometry)
+sim-core   281 tests — all passing
+game-ui     43 tests — all passing   (gestures, browser determinism, real layout geometry)
 desktop      2 tests — all passing   (launches the real Electron shell)
 android      2 tests — all passing   (APK is valid and ships identical bytes)
 tsc --noEmit — clean
@@ -188,10 +196,11 @@ See `git log` on branch `feature/ui` — the UI commit is the latest verified st
 
 In dependency order:
 
-1. **A third battle, or an operational campaign** (Phase 14). An operational campaign would
-   exercise carry-forward against real history rather than the synthetic fixture it is currently
-   tested with. ADR-008 sets the expectation for a battle: mostly data, plus whatever general
-   capability its mechanic needs.
+1. **A physical Android device pass.** The last wholly unverified platform claim.
+2. **A siege scenario.** `LAM_SON_1426` narrates the siege of Đông Quan between its battles but
+   cannot play it — sieges are a kind of engagement the simulation does not model.
+3. **Research debts**, especially RD-08 (the Ming Shi-lu via Geoff Wade), which would let several
+   DISPUTED figures be checked against the record they came from.
 
 ## DO NOT BREAK
 
@@ -224,5 +233,7 @@ In dependency order:
   touch-specific branch would be a path most players never exercise, which is how mobile support
   rots.
 - **`touch-action: none` on the canvas.** Without it a drag pans the page instead of selecting.
+- **Carry-forward must stay faction-scoped where the history is asymmetric.** A test caught an
+  unscoped rule quietly carrying Lam Sơn losses forward when the campaign said it did not.
 - **Campaign divergence must stay one-way.** A reset would let a counterfactual campaign present
   itself as the historical one, which is precisely what §37 forbids.
