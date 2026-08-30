@@ -1,0 +1,14 @@
+{
+  "name": "vietnam-historical-battles-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Historical battle simulation and strategy platform for Vietnamese history",
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check": "npm run typecheck && npm run test"
+  },
+  "engines": { "node": ">=20" }
+}
